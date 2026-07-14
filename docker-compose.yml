@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DEBUGRELAY_ENV: ${DEBUGRELAY_ENV:-local}
+      DEBUGRELAY_ADMIN_TOKEN: ${DEBUGRELAY_ADMIN_TOKEN:-debugrelay-local-admin}
+      DATABASE_URL: ${DEBUGRELAY_DOCKER_DATABASE_URL:-postgresql+asyncpg://debugrelay:debugrelay@postgres:5432/debugrelay}
+    networks:
+      - shared-postgres
+    ports:
+      - "127.0.0.1:8010:8010"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/app/.venv/bin/python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+networks:
+  shared-postgres:
+    name: ${DEBUGRELAY_POSTGRES_NETWORK:-dayboard_default}
+    external: true

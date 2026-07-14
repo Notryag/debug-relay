@@ -5,9 +5,9 @@ This wiki is the source of truth for DebugRelay product and engineering decision
 
 ## Current Status
 
-DebugRelay is in its contract-first stage. Issue Bundle v1 now has an executable JSON Schema, three
-portable examples, and contract tests. Application implementation begins with the domain storage and
-REST resources after the first acceptance case is selected.
+DebugRelay has completed its first backend vertical slice: Issue Bundle v1, PostgreSQL persistence,
+scoped tokens, evidence redaction, REST resources, ZIP export, and integration tests. CLI and web
+implementation are the next product stages; public production exposure remains deferred.
 
 ## Read by Task
 
@@ -22,6 +22,7 @@ REST resources after the first acceptance case is selected.
 | Connect a project or runtime | [Project Integration](integrations/project-integration.md) |
 | Connect a development agent | [Development Agent Interface](integrations/agent-interface.md) |
 | Change auth, redaction, or access | [Security](security.md) |
+| Run or change the backend | [Backend Development](development.md) |
 | Plan implementation or acceptance | [MVP Plan](mvp.md) |
 
 ## Recommended Reading Paths
@@ -39,7 +40,8 @@ Core implementation:
 2. [Issue Bundle v1](contracts/issue-bundle-v1.md)
 3. [Evidence Pipeline](architecture/evidence-pipeline.md)
 4. [Security](security.md)
-5. [MVP Plan](mvp.md)
+5. [Backend Development](development.md)
+6. [MVP Plan](mvp.md)
 
 Integration implementation:
 

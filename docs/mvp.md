@@ -15,7 +15,10 @@ MVP acceptance. The core contract must not depend on one model or provider.
 - Complete: Issue Bundle v1 Draft 2020-12 JSON Schema
 - Complete: minimal, exception, and resolved portable examples
 - Complete: schema, reference-integrity, and content-integrity contract tests
-- Next: PostgreSQL domain storage and REST resources
+- Complete: PostgreSQL domain storage and initial migration
+- Complete: scoped project tokens, evidence redaction, REST workflow, and bundle export
+- Complete: PostgreSQL integration and security tests
+- Next: CLI create, show, attach, export, analysis, and resolve commands
 
 ## Vertical Slice
 
@@ -90,8 +93,8 @@ The first case should include:
 ## Delivery Stages
 
 1. Complete: finalize Issue Bundle v1 JSON Schema and representative fixtures.
-2. Implement PostgreSQL domain storage and REST resources.
-3. Add the CLI and portable export.
+2. Complete: implement PostgreSQL domain storage and REST resources.
+3. Next: add the CLI; portable API export is complete.
 4. Build the issue inbox, issue detail, and project settings pages.
 5. Complete one real AI development-agent analysis and resolution round trip.
 6. Add deterministic similar-case retrieval.

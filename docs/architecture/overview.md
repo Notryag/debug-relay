@@ -65,6 +65,10 @@ later adapters.
 Stores larger evidence content. Development starts with a local filesystem implementation behind a
 storage interface. An S3-compatible implementation can be added without changing issue contracts.
 
+The current backend keeps bounded sanitized evidence bytes in PostgreSQL for transactional intake
+and ZIP export. This does not change the boundary for larger artifacts, which remain outside
+relational rows.
+
 ## Technology Stack
 
 | Layer | Choice |
@@ -122,7 +126,9 @@ Do not use in-process background tasks for evidence that must survive a service 
 
 ## Deployment
 
-The first self-hosted deployment uses Docker Compose. DebugRelay does not need to run in the same
+The first self-hosted deployment uses Docker Compose for the API. PostgreSQL may be a dedicated
+instance or a shared server instance with a separate role and separate DebugRelay databases. Sharing
+an application database or schema is not supported. DebugRelay does not need to run in the same
 runtime as the project it observes, and Kubernetes support does not require DebugRelay itself to run
 in a cluster.
 

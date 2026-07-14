@@ -8,6 +8,16 @@ DebugRelay handles error data, repository identity, source locations, runtime me
 output. Its default posture is bounded, read-only evidence collection with sanitized storage and
 explicit human confirmation of resolution.
 
+## Current Implementation Status
+
+The local backend currently provides separate admin, project-intake, and project-agent bearer-token
+scopes; hashed project tokens; cross-project isolation; pre-storage evidence redaction; bounded
+evidence sizes; immutable source revisions; and human-only resolution confirmation.
+
+It is not ready for public internet exposure. Human session authentication, request-rate limiting,
+idempotent webhook replay protection, audit-event persistence, token rotation, and external artifact
+storage remain implementation requirements.
+
 ## Intake and Authentication
 
 - Intake tokens are scoped to one project and stored as hashes.

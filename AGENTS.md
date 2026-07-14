@@ -9,9 +9,9 @@ These instructions apply to the entire DebugRelay repository.
 - Read `docs/contracts/issue-bundle-v1.md` before changing public data contracts.
 - Read `docs/security.md` before changing evidence collection, storage, export, authentication, or
   repository access.
-- The project is in its contract-first phase. Issue Bundle v1 and its tests exist; application
-  implementation has not started. Do not introduce broader scaffolding unless the task asks for the
-  next MVP stage.
+- The backend vertical slice is implemented: Issue Bundle v1, PostgreSQL persistence, scoped tokens,
+  evidence redaction, REST resources, ZIP export, and integration tests. The CLI and web application
+  have not started. Keep new work within the next routed MVP stage.
 
 ## Product Invariants
 
