@@ -1,41 +1,132 @@
 # DebugRelay
 
-DebugRelay captures a software problem, packages the relevant context for a development agent, and
-records the verified fix as a reusable case.
+DebugRelay 是一个面向开发者的 AI 问题定位与经验沉淀工具。
 
-> Make every debugging session useful to the next one.
+它负责记录问题发生时的上下文，将经过整理的证据和准确的代码版本交给 AI 开发
+Agent 分析，再把开发者确认的根因、修复提交和验证结果沉淀为可复用案例。
 
-DebugRelay is model-agnostic. It does not need to run an AI model, replace an issue tracker, or
-become a monitoring platform. Its stable product boundary is the issue and evidence contract shared
-by people, projects, and development agents.
+> 让每一次排障，都能让下一次定位更快。
 
-## Documentation
+## 为什么需要 DebugRelay
 
-The documentation is organized as a project wiki. Start at the
-[Wiki Home](docs/README.md), or go directly to:
+一个线上或测试问题发生后，真正影响定位效率的往往不是缺少 AI，而是上下文散落在不同地方：
 
-- [Product Vision](docs/product/vision.md)
-- [Core Workflow and Domain Model](docs/product/workflow.md)
-- [Web Application](docs/product/web-application.md)
-- [System Architecture](docs/architecture/overview.md)
-- [Evidence Pipeline](docs/architecture/evidence-pipeline.md)
-- [Issue Bundle v1](docs/contracts/issue-bundle-v1.md)
-- [Project Integration](docs/integrations/project-integration.md)
-- [Development Agent Interface](docs/integrations/agent-interface.md)
-- [Security](docs/security.md)
-- [MVP Plan](docs/mvp.md)
+- 错误信息在日志或截图里
+- 运行状态在容器或 Kubernetes 中
+- 最近变化在 Git、CI 和部署记录中
+- 复现步骤只存在于开发者的记忆里
+- 以前解决过的类似问题很难被再次找到
 
-## Status
+直接把一段报错交给开发 Agent，Agent 仍然需要反复询问项目、环境、代码版本和相关日志。
+DebugRelay 在项目与 Agent 之间建立一个稳定的问题上下文层，让 Agent 从一份完整、可追溯、
+经过脱敏的问题资料开始分析。
 
-The project is in the design stage. The first implementation will prove one complete flow:
+## 愿景
+
+DebugRelay 希望形成这样一个开发闭环：
 
 ```text
-record problem -> build issue bundle -> agent analyzes code -> developer confirms fix -> reuse case
+记录问题
+  -> 收集并筛选相关证据
+  -> 固定仓库与代码版本
+  -> AI Agent 定位代码和分析根因
+  -> 开发者确认并完成修复
+  -> 记录提交、测试与验证结果
+  -> 相似问题优先复用历史案例
 ```
 
-Dayboard may be the first reference integration, but DebugRelay must remain project-independent.
+真正的数据飞轮不是积累更多原始日志，而是持续积累经过确认的关系：
 
-## Repository
+```text
+问题特征 -> 有效证据 -> 根因 -> 修改位置 -> 修复提交 -> 验证结果
+```
 
-Implementation has not started. Project-wide instructions for coding agents live in
-[AGENTS.md](AGENTS.md).
+## 计划中的使用方式
+
+DebugRelay 目前处于设计阶段，下面是计划实现的完整工作流。
+
+### 1. 接入项目
+
+为项目登记代码仓库、允许访问的工作区、环境和组件信息，并配置需要的证据来源与脱敏规则。
+项目可以从手动接入开始，不要求预先部署完整的监控系统。
+
+### 2. 记录问题
+
+开发者可以通过页面或 CLI 创建问题，项目、CI、错误平台也可以通过 API 或 Webhook 自动上报。
+一条问题至少需要包含：
+
+- 实际现象和预期行为
+- 复现步骤
+- 发生环境与组件
+- 准确的 Git Commit 或等价代码版本
+- 错误、堆栈、日志、截图等相关证据
+
+### 3. 生成问题包
+
+DebugRelay 会先对数据进行校验、脱敏、关联和去重，再生成版本化的 Issue Bundle。问题包只包含
+Agent 当前分析需要的证据，同时保留进一步查询原始来源的受限入口。
+
+### 4. 交给 AI 开发 Agent
+
+Agent 通过文件、CLI、REST API 或 MCP 读取问题包，并在授权的代码仓库中定位相关文件、符号和
+代码行。Agent 返回的分析需要区分事实与假设，并引用具体证据或源码位置。
+
+DebugRelay 是 AI 原生产品，但不绑定某个模型或厂商。Codex、Claude 或其他开发 Agent 都可以接入
+同一份问题契约。
+
+### 5. 确认修复
+
+开发者审查 Agent 的分析，完成或调整代码修改，并记录最终根因、修复提交、测试命令和验证结果。
+只有开发者可以确认问题已经解决。
+
+### 6. 复用历史经验
+
+新问题出现时，DebugRelay 会先根据错误指纹、堆栈、组件和文本检索已解决案例，帮助 Agent 优先
+验证曾经有效的原因与修复方式。
+
+## 核心能力
+
+- 通用的问题记录与证据采集，不绑定具体项目
+- 日志、堆栈、请求、运行状态和代码变更的关联与去重
+- 可移植、可校验的 Issue Bundle
+- 面向开发 Agent 的文件、CLI、REST 和 MCP 接口
+- 带证据引用和源码位置的 AI 诊断结果
+- 人工确认的根因、修复提交和验证记录
+- 基于历史案例的相似问题检索
+- 入库前脱敏、权限控制和完整证据来源记录
+
+## 页面规划
+
+DebugRelay 会提供一个面向开发者的 Web 应用，而不是监控大盘或聊天首页。
+
+- **问题收件箱**：查看、筛选和搜索待分析及已解决问题
+- **问题详情**：查看现象、证据、代码版本、Agent 分析和修复结果
+- **项目设置**：配置仓库、接入凭据、证据来源、脱敏和留存策略
+
+项目和 Agent 的自动化接入主要通过 API、CLI 与 MCP 完成；页面负责人工补充信息、审查分析和
+确认解决结果。
+
+## 产品边界
+
+DebugRelay 不重新实现日志、指标、代码托管或任务管理系统。GitHub Issues、Jira、Sentry、
+Prometheus、Loki、Docker 和 Kubernetes 都可以成为问题或证据来源。
+
+第一版不会提供自动部署、生产环境写操作、自动回滚或无人确认的修复。AI Agent 可以提出并验证
+代码修改，但最终解决结果由开发者确认。
+
+## 当前状态
+
+项目处于设计阶段，尚未发布可运行版本。最近的开发目标是完成：
+
+1. Issue Bundle v1 JSON Schema 与示例
+2. 问题、证据、Agent 分析和解决结果的数据模型
+3. REST API 与 CLI 的最小闭环
+4. 问题收件箱和问题详情页面
+5. 一次真实的 AI 开发 Agent 分析与修复验证
+
+Dayboard 可以作为第一个试用项目，但 DebugRelay 的核心设计不会依赖 Dayboard。
+
+## 开发文档
+
+面向贡献者和开发 Agent 的产品约束、架构、契约、安全规则与 MVP 验收标准位于
+[DebugRelay Wiki](docs/README.md)。

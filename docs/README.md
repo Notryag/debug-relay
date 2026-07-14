@@ -49,9 +49,9 @@ Integration implementation:
 
 ## Product Boundary
 
-DebugRelay owns problem context, evidence provenance, agent handoff, and verified resolution history.
-It does not own monitoring, alert routing, source control, issue tracking, model execution, or
-production remediation.
+DebugRelay owns problem context, evidence provenance, AI development-agent handoff, and verified
+resolution history. It does not own monitoring, alert routing, source control, issue tracking, a
+provider-specific model runtime, or production remediation.
 
 ## Documentation Rules
 

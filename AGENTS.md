@@ -16,7 +16,9 @@ These instructions apply to the entire DebugRelay repository.
 
 - DebugRelay is a generic developer problem-context and resolution system.
 - Dayboard is only a possible reference integration; core concepts must never depend on it.
-- DebugRelay does not need to invoke a model. Development agents are external consumers.
+- AI development-agent diagnosis is required in the core workflow, but the agent runtime may remain
+  external to DebugRelay.
+- DebugRelay is model- and provider-agnostic; no core contract may depend on one model vendor.
 - REST, OpenAPI, and versioned JSON Schema are canonical. CLI and MCP are adapters.
 - Source code stays in an authorized repository or workspace unless explicitly attached.
 - Evidence is validated, bounded, and redacted before storage and export.
@@ -28,8 +30,8 @@ These instructions apply to the entire DebugRelay repository.
 
 - Preserve the small issue lifecycle: `open`, `analyzing`, and `resolved`.
 - Prefer a complete issue-to-resolution vertical slice over broad integration coverage.
-- Do not add a monitoring dashboard, alert engine, log database, embedded chat product, model
-  runtime, autonomous remediation, or Kubernetes operator to the MVP.
+- Do not add a monitoring dashboard, alert engine, log database, embedded chat product,
+  provider-specific model runtime, autonomous remediation, or Kubernetes operator to the MVP.
 - Do not add Elasticsearch, Kafka, a standalone vector database, or a second implementation
   language without measured need.
 - Go is reserved for a future distributed collector or Kubernetes controller when its deployment or

@@ -4,16 +4,17 @@
 
 ## Purpose
 
-DebugRelay is a model-agnostic developer tool for capturing a software problem, packaging the
-relevant context, handing that context to a development agent, and recording the verified fix.
+DebugRelay is an AI-native, model-agnostic developer tool for capturing a software problem,
+packaging the relevant context, handing that context to a development agent, and recording the
+verified fix.
 
 Its purpose is:
 
 > Make every debugging session useful to the next one.
 
-DebugRelay is the context and feedback layer between a project and a development agent. The agent
-may be local, remote, interactive, or automated, as long as it can consume the stable DebugRelay
-contract.
+DebugRelay is the context and feedback layer between a project and an AI development agent. AI
+diagnosis is part of the core product workflow, while the agent may be local, remote, interactive,
+or automated. The contract remains independent of a specific model or provider.
 
 ## Questions the Product Answers
 

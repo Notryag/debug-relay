@@ -4,10 +4,11 @@
 
 ## Goal
 
-Prove that a problem can be recorded once, handed to an external development agent with enough
-context to inspect the correct source revision, and returned as a human-confirmed reusable case.
+Prove that a problem can be recorded once, handed to a real AI development agent with enough context
+to inspect the correct source revision, and returned as a human-confirmed reusable case.
 
-The MVP succeeds without DebugRelay invoking a model.
+The agent runtime may remain external to DebugRelay, but an AI diagnosis round trip is required for
+MVP acceptance. The core contract must not depend on one model or provider.
 
 ## Vertical Slice
 
@@ -41,7 +42,8 @@ file-based agent handoff.
 
 ## Acceptance Criteria
 
-- the entire workflow works without DebugRelay invoking a model
+- one real AI development agent completes an analysis round trip
+- the same issue bundle can be consumed without a provider-specific field
 - every handed-off issue identifies an immutable source revision
 - an exported bundle is readable without database access
 - configured secret fixtures never appear in stored or exported evidence
@@ -84,7 +86,7 @@ The first case should include:
 2. Implement PostgreSQL domain storage and REST resources.
 3. Add the CLI and portable export.
 4. Build the issue inbox, issue detail, and project settings pages.
-5. Complete one external-agent analysis and resolution round trip.
+5. Complete one real AI development-agent analysis and resolution round trip.
 6. Add deterministic similar-case retrieval.
 7. Add generic Git, file, Docker, webhook, and HTTP evidence adapters.
 8. Add MCP and Kubernetes adapters only after the core contract is stable.
