@@ -1,0 +1,61 @@
+# DebugRelay Wiki
+
+This wiki is the source of truth for DebugRelay product and engineering decisions. The root
+`README.md` is only the repository entry point.
+
+## Current Status
+
+DebugRelay is in the design stage. Implementation should begin only after Issue Bundle v1 and the
+first end-to-end acceptance case are concrete enough to test.
+
+## Read by Task
+
+| Task | Read |
+| --- | --- |
+| Understand the product | [Product Vision](product/vision.md) |
+| Change issue states or domain concepts | [Core Workflow and Domain Model](product/workflow.md) |
+| Design or implement the UI | [Web Application](product/web-application.md) |
+| Choose services, storage, or runtime | [System Architecture](architecture/overview.md) |
+| Collect, filter, or rank evidence | [Evidence Pipeline](architecture/evidence-pipeline.md) |
+| Change the portable contract | [Issue Bundle v1](contracts/issue-bundle-v1.md) |
+| Connect a project or runtime | [Project Integration](integrations/project-integration.md) |
+| Connect a development agent | [Development Agent Interface](integrations/agent-interface.md) |
+| Change auth, redaction, or access | [Security](security.md) |
+| Plan implementation or acceptance | [MVP Plan](mvp.md) |
+
+## Recommended Reading Paths
+
+Product review:
+
+1. [Product Vision](product/vision.md)
+2. [Core Workflow and Domain Model](product/workflow.md)
+3. [Web Application](product/web-application.md)
+4. [MVP Plan](mvp.md)
+
+Core implementation:
+
+1. [System Architecture](architecture/overview.md)
+2. [Issue Bundle v1](contracts/issue-bundle-v1.md)
+3. [Evidence Pipeline](architecture/evidence-pipeline.md)
+4. [Security](security.md)
+5. [MVP Plan](mvp.md)
+
+Integration implementation:
+
+1. [Project Integration](integrations/project-integration.md)
+2. [Evidence Pipeline](architecture/evidence-pipeline.md)
+3. [Development Agent Interface](integrations/agent-interface.md)
+4. [Security](security.md)
+
+## Product Boundary
+
+DebugRelay owns problem context, evidence provenance, agent handoff, and verified resolution history.
+It does not own monitoring, alert routing, source control, issue tracking, model execution, or
+production remediation.
+
+## Documentation Rules
+
+- Each durable concept has one canonical page.
+- Other pages link to that definition instead of copying it.
+- Contract examples are versioned and testable once implementation begins.
+- Decisions that change product boundaries must update the Product Vision and MVP Plan together.
