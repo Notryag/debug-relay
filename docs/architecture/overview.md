@@ -4,147 +4,173 @@
 
 ## Design Principles
 
-- The versioned issue contract is more stable than any transport or integration.
-- The core service stores development cases, not general observability data.
+- Continuous error intake is the primary entry point; manual case creation is a fallback.
+- Deterministic code performs authentication, redaction, normalization, grouping, counting, and
+  detection before an AI agent sees data.
+- DebugRelay stores compact error aggregates and development cases, not an unbounded telemetry copy.
 - Source adapters normalize through public ingestion services and never write core tables directly.
-- Development agents are external consumers with bounded read and report access.
-- PostgreSQL is the source of truth for workflow state and evidence metadata.
-- Infrastructure is added only when an accepted use case requires it.
+- Development agents consume bounded case context and cannot mutate production systems.
+- PostgreSQL is the source of truth for receipts, groups, statistics, cases, and verified history.
+- Infrastructure is added only when measured volume or durability requires it.
 
 ## Logical Architecture
 
 ```text
-Web / CLI / Webhooks / Source Adapters
-                  |
-                  v
-          FastAPI ingestion API
-                  |
-                  v
-       Evidence processing services
-                  |
-        +---------+----------+
-        |                    |
-        v                    v
-   PostgreSQL          Artifact storage
-        |                    |
-        +---------+----------+
-                  |
-                  v
-        REST / Bundle / MCP
-                  |
-                  v
-          Development agent
+Applications / CI / Webhooks / OTel / Docker / Kubernetes / Sentry
+                              |
+                              v
+                     Collectors and adapters
+                              |
+                              v
+                    Authenticated Event API
+                              |
+                              v
+            validate -> redact -> normalize -> fingerprint
+                              |
+                              v
+        idempotent receipt -> ErrorGroup -> occurrence buckets
+                              |
+                              v
+                       Detection service
+                              |
+                              v
+                  automatic DevelopmentCase
+                              |
+               +--------------+--------------+
+               |                             |
+               v                             v
+          PostgreSQL                  Artifact storage
+               |                             |
+               +--------------+--------------+
+                              |
+                              v
+                 REST / Issue Bundle / MCP
+                              |
+                              v
+                    Development agent
+                              |
+                              v
+                 Human-confirmed resolution
 ```
 
-## Planned Components
+## Components
 
-### API
+### Collectors and Adapters
 
-Owns authentication, project configuration, issue lifecycle, evidence intake, portable exports,
-agent reports, resolutions, and search. OpenAPI is generated from the same validated models used by
-the service.
+Collectors continuously read or receive errors from a bounded source and emit the shared
+`ErrorEvent` contract. They maintain source cursors or event IDs, retry transient failures, and never
+mutate the observed runtime.
+
+The first generic inputs are structured HTTP events and webhooks. Docker log, OpenTelemetry, error
+service, CI, and Kubernetes adapters translate their native records into the same contract.
+
+### Event API
+
+Authenticates a project-scoped intake token, validates size and timestamps, redacts sensitive data,
+computes a stable fingerprint, rejects duplicate event IDs, and updates aggregate state.
+
+The API does not synchronously call an AI model. An accepted event returns its error-group identity,
+updated count, duplicate status, and any automatically opened case ID.
+
+### Grouping and Statistics
+
+Events are grouped by project, environment, component, and deterministic fingerprint. PostgreSQL
+stores aggregate count, first and last seen timestamps, latest release identity, a sanitized sample,
+and one-minute occurrence buckets. Receipts retain only the minimum metadata needed for idempotency
+and audit.
+
+### Detection Service
+
+Evaluates deterministic policies against group state. The first implementation opens a case for a
+new `error` or `critical` group when the event identifies a registered repository and immutable
+commit. Later policies add rate changes, recurrences, and release regressions.
+
+Detection remains separable from ingestion so higher volumes can move evaluation to a durable worker
+without changing event or case contracts.
+
+### Case API
+
+Owns the existing issue lifecycle, selected evidence, portable exports, agent reports, human
+resolution, and similar-case retrieval. An automatically created case and a manual fallback case use
+the same downstream service.
 
 ### Web
 
-Provides the issue inbox, issue detail, and project settings. It consumes the public API and does
-not access PostgreSQL directly.
+The first screen is an error-group inbox with counts, trends, affected revisions, detection status,
+and active case state. Case detail supports evidence review, agent analysis, and resolution.
 
 ### CLI
 
-Provides fast manual intake, attachment upload, bundle export, and agent-result import. CLI behavior
-must map to public API resources rather than a private database interface.
-
-### Evidence Adapters
-
-Translate source-specific data into the shared Evidence contract. Initial adapters may cover files,
-Git, HTTP, and Docker. Kubernetes, issue trackers, error services, and observability platforms are
-later adapters.
-
-### Artifact Storage
-
-Stores larger evidence content. Development starts with a local filesystem implementation behind a
-storage interface. An S3-compatible implementation can be added without changing issue contracts.
-
-The current backend keeps bounded sanitized evidence bytes in PostgreSQL for transactional intake
-and ZIP export. This does not change the boundary for larger artifacts, which remain outside
-relational rows.
+The CLI is an operational and agent adapter. Its primary monitoring role is inspecting groups,
+exporting a detected case, reporting analysis, and confirming reviewed resolutions. Raw JSON case
+creation remains a low-level debugging fallback, not the normal developer workflow.
 
 ## Technology Stack
 
 | Layer | Choice |
 | --- | --- |
-| API | Python, FastAPI, Pydantic |
+| API and processing | Python, FastAPI, Pydantic |
 | Persistence | PostgreSQL, SQLAlchemy, Alembic |
+| Initial aggregation | PostgreSQL receipts, groups, and one-minute buckets |
 | Initial search | fingerprints, PostgreSQL full-text search, `pg_trgm` |
 | Web | Next.js, React, TypeScript |
 | CLI | Python, Typer, httpx |
-| Contracts | OpenAPI and versioned JSON Schema fixtures |
-| Agent access | REST and portable bundles; MCP adapter |
+| Contracts | OpenAPI and versioned JSON Schema |
+| Agent access | REST and portable bundles; MCP adapter later |
 | Application logs | structured JSON with structlog |
 | Initial deployment | Docker Compose |
 
-Generate browser and CLI client contracts from OpenAPI or JSON Schema. Do not maintain parallel
-handwritten request and response types.
-
 ## Persistence
 
-Core relational tables are expected to include:
+Core relational tables include:
 
 ```text
 projects
 repositories
-issues
+error_event_receipts
+error_groups
+error_occurrence_buckets
+issues                    # current storage name for DevelopmentCase
 evidence
-artifacts
 agent_analyses
 resolutions
-issue_links
 ```
 
-Use explicit columns for stable product fields. JSONB is appropriate for versioned source-specific
-extensions, not as a substitute for the domain model. Store artifact metadata and hashes in
-PostgreSQL while keeping large content in artifact storage.
+Stable product fields use explicit columns. JSONB is limited to bounded source, release, correlation,
+and sanitized sample extensions. Large artifacts remain outside relational rows.
 
-## Search and Similarity
+Receipt and bucket retention is shorter than case and resolution retention. Raw telemetry remains in
+the source system.
 
-The first implementation uses:
+## Concurrency and Delivery
 
-- normalized error fingerprints
-- exception type and top application stack frames
-- PostgreSQL full-text search
-- `pg_trgm` fuzzy matching
-- explicit project, component, revision, and time filters
+- Event IDs are unique per project and provide at-least-once delivery safety.
+- Group updates are serialized by a transaction-scoped advisory lock on group identity.
+- Receipt, count, bucket, and automatic case creation commit in one PostgreSQL transaction.
+- A duplicate delivery returns the original group and case identity without incrementing counts.
+- Collector retries use bounded exponential backoff and preserve the original event ID.
 
-Do not add Elasticsearch or a standalone vector database to the MVP. After enough confirmed cases
-exist, pgvector may be evaluated against a fixed retrieval test set.
-
-## Background Work
-
-The first manual vertical slice can process bounded evidence synchronously. When automatic
-collection or large-artifact processing is introduced, add a durable worker such as arq with Redis.
-Do not use in-process background tasks for evidence that must survive a service restart.
+The first slice processes one bounded event synchronously. A durable worker and queue are introduced
+only when measured ingestion volume makes synchronous detection insufficient. In-process background
+tasks are not used for state that must survive restarts.
 
 ## Deployment
 
-The first self-hosted deployment uses Docker Compose for the API. PostgreSQL may be a dedicated
-instance or a shared server instance with a separate role and separate DebugRelay databases. Sharing
-an application database or schema is not supported. DebugRelay does not need to run in the same
-runtime as the project it observes, and Kubernetes support does not require DebugRelay itself to run
-in a cluster.
+The first self-hosted deployment uses Docker Compose. PostgreSQL may be a dedicated instance or a
+shared server instance with a separate role and separate DebugRelay databases. Sharing another
+application's database or schema is unsupported.
+
+DebugRelay does not need to run beside the observed project. Collectors need only outbound access to
+the event API, and Kubernetes support does not require the core service to run in a cluster.
 
 ## Go and Kubernetes
 
-Go is not required for the core service. A separate Go collector is justified only by a concrete
-need such as:
+Go is not required for the core service. A separate Go collector becomes justified only by a
+concrete distribution or watch requirement such as a dependency-free host binary, high-volume
+Kubernetes watches, a node DaemonSet, or controller leader election.
 
-- distributing a dependency-free host binary
-- maintaining high-volume Kubernetes watches and caches
-- running a node-level DaemonSet
-- implementing a controller with leader election
-
-The first Kubernetes integration should be a read-only API adapter. It collects bounded workload,
-event, log, rollout, and image identity evidence and emits the same Evidence contract as every other
-adapter.
+The first Kubernetes adapter is read-only and emits the same `ErrorEvent` or bounded evidence
+contract as every other source.
 
 Related: [Evidence Pipeline](evidence-pipeline.md),
 [Project Integration](../integrations/project-integration.md), and [Security](../security.md).

@@ -4,32 +4,40 @@
 
 ## Security Goal
 
-DebugRelay handles error data, repository identity, source locations, runtime metadata, and agent
-output. Its default posture is bounded, read-only evidence collection with sanitized storage and
-explicit human confirmation of resolution.
+DebugRelay continuously handles untrusted error events, repository identity, source locations,
+runtime metadata, and agent output. Its default posture is authenticated bounded intake, redaction
+before fingerprinting or storage, aggregate rather than raw-event retention, read-only collection,
+and explicit human confirmation of resolution.
 
 ## Current Implementation Status
 
 The local backend currently provides separate admin, project-intake, and project-agent bearer-token
 scopes; hashed project tokens; cross-project isolation; pre-storage evidence redaction; bounded
-evidence sizes; immutable source revisions; and human-only resolution confirmation.
+evidence sizes; immutable source revisions; human-only resolution confirmation; project-scoped event
+idempotency; aggregate-only monitoring storage; and redaction before fingerprinting.
 
 It is not ready for public internet exposure. Human session authentication, request-rate limiting,
-idempotent webhook replay protection, audit-event persistence, token rotation, and external artifact
-storage remain implementation requirements.
+signed webhook verification, audit-event retention, token rotation, receipt expiration, and external
+artifact storage remain implementation requirements.
 
 ## Intake and Authentication
 
 - Intake tokens are scoped to one project and stored as hashes.
+- Intake credentials are write-only for monitoring resources; group list and detail require agent or
+  admin scope.
+- Event IDs are unique within a project and retries preserve the original ID.
 - Human sessions, adapter credentials, and agent credentials use distinct scopes.
 - Agent credentials may read assigned issues and report analysis but cannot confirm resolution.
-- Requests enforce content type, item count, byte size, and rate limits before processing.
-- Webhooks support replay protection and idempotent event IDs.
+- Requests must enforce content type, item count, byte size, and rate limits before processing.
+- Webhooks must support signature verification, replay protection, and idempotent event IDs.
+
+Continuous sources also require per-project event-rate, body-size, attribute-count, stack-size, and
+clock-skew limits. A successful duplicate response must reveal no data outside the token's project.
 
 ## Redaction
 
-Redaction occurs before persistent storage and again before export as defense in depth. Policies
-must cover:
+Redaction occurs before fingerprinting, grouping samples, persistent evidence storage, and export.
+Policies must cover:
 
 - passwords and common secret-key fields
 - API tokens and access keys
@@ -38,10 +46,12 @@ must cover:
 - configured personal or tenant identifiers
 - request and response bodies, which are excluded by default
 
-Every evidence record stores the redaction-policy version and outcome. Redaction tests include both
-known-secret fixtures and benign values that must remain intact.
+Every group sample and evidence record stores the redaction-policy version and outcome. Fingerprints
+must be computed only from sanitized normalized values so secrets cannot become stable identifiers.
+Redaction tests include known-secret fixtures and benign values that must remain intact.
 
-The MVP stores and exports sanitized evidence only. Restricted raw-evidence retention is deferred.
+The MVP stores compact receipts, aggregates, bounded sanitized samples, and selected case evidence.
+Restricted raw-evidence retention is deferred.
 
 ## Repository Access
 
@@ -73,6 +83,8 @@ exposing that socket to the core API or development agent.
 
 Record actor, action, issue, project, source scope, and time for:
 
+- event acceptance, duplicate rejection, and detection decisions
+- automatic case creation and error-group changes
 - evidence intake and follow-up queries
 - artifact download
 - bundle export
@@ -82,9 +94,10 @@ Record actor, action, issue, project, source scope, and time for:
 
 ## Retention
 
-Large and raw-like artifacts have the shortest retention. Sanitized selected evidence follows the
-project policy. Confirmed root cause, fix, verification, and small evidence summaries may be retained
-longer because they form the reusable case library.
+Event receipts have short replay-protection retention. Occurrence buckets may roll up over time;
+bounded group samples and selected case evidence follow project policy. Large artifacts have the
+shortest retention. Confirmed root cause, fix, verification, and small evidence summaries may be
+retained longer because they form the reusable case library.
 
 Related: [Evidence Pipeline](architecture/evidence-pipeline.md),
 [Project Integration](integrations/project-integration.md), and

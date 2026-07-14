@@ -4,13 +4,15 @@
 
 ## Current Backend
 
-The first backend vertical slice is implemented. It persists projects, repository snapshots,
-issues, sanitized evidence, AI development-agent analyses, and human-confirmed resolutions in
-PostgreSQL. It can export a validated Issue Bundle v1 ZIP and retrieve similar resolved issues.
+The monitoring and downstream case slices are implemented. The backend accepts bounded structured
+error events, stores idempotency receipts, groups equivalent errors, updates one-minute occurrence
+buckets, and automatically opens a development case for a first actionable error with an immutable
+revision. It also persists selected evidence, AI development-agent analyses, human-confirmed
+resolutions, portable bundles, and similar resolved cases.
 
 The backend is suitable for local development and acceptance testing. It is not ready for public
-internet exposure because human session authentication, request-rate limiting, idempotent intake,
-and large-artifact storage are not implemented yet.
+internet exposure because human session authentication, request-rate limiting, signed webhook
+verification, receipt expiration, audit retention, and large-artifact storage are not implemented.
 
 ## Prerequisites
 
@@ -55,6 +57,7 @@ For a host process:
 DEBUGRELAY_ENV=local
 DEBUGRELAY_ADMIN_TOKEN=<at-least-32-random-characters>
 DATABASE_URL=postgresql+asyncpg://debugrelay:<password>@127.0.0.1:5432/debugrelay
+DEBUGRELAY_MAX_EVENT_BYTES=262144
 ```
 
 Install dependencies and apply migrations:
@@ -78,7 +81,7 @@ The source checkout also exposes the REST-backed CLI:
 uv run debugrelay --help
 ```
 
-See [Command-Line Interface](cli.md) for configuration, token scopes, examples, and exit codes.
+See [Command-Line Interface](cli.md) for configuration, token scopes, limits, and exit codes.
 
 ## Docker API
 
@@ -109,9 +112,10 @@ DebugRelay product dependency.
 All `/api` resources require a bearer token.
 
 - admin token: configured through `DEBUGRELAY_ADMIN_TOKEN`; creates projects and confirms resolution
-- intake token: generated once when a project is created; creates issues and appends evidence only
-- agent token: generated once when a project is created; reads issue context, downloads bundles, and
-  reports analysis
+- intake token: generated once when a project is created; submits events, creates fallback issues,
+  and appends evidence for its project; monitoring reads are not allowed
+- agent token: generated once when a project is created; reads error-group detail and case context,
+  downloads bundles, and reports analysis
 
 Project tokens are stored only as SHA-256 hashes. They are high-entropy bearer tokens and are shown
 only in the project-creation response.
@@ -125,6 +129,9 @@ production configuration refuses to start without an explicit admin token of at 
 GET  /health
 POST /api/projects
 GET  /api/projects/{project_id}
+POST /api/events
+GET  /api/error-groups
+GET  /api/error-groups/{group_id}
 POST /api/issues
 GET  /api/issues
 GET  /api/issues/{issue_id}
@@ -137,20 +144,27 @@ POST /api/issues/{issue_id}/analyses
 POST /api/issues/{issue_id}/resolve
 ```
 
-Issue creation requires one registered repository snapshot, one immutable commit, and initial anchor
-evidence. Posting an analysis changes the issue to `analyzing`. Only the admin scope can create the
-human-confirmed resolution and move the issue to `resolved`.
+Event intake requires a stable project-scoped event ID, UTC timestamp, source, severity, and error
+identity. Redaction precedes fingerprinting. Duplicate IDs with the same sanitized content return
+the original group without incrementing counts; reuse with different content returns `409`.
+
+A new `error` or `critical` group automatically opens one case when the event includes a registered
+repository and immutable commit. Without a revision, the group remains visible as
+`awaiting_revision`. Manual issue creation remains a fallback and still requires one repository
+snapshot and initial anchor evidence. Posting analysis changes a case to `analyzing`; only admin can
+confirm resolution.
 
 ## Evidence Storage and Redaction
 
-The MVP stores bounded sanitized evidence bytes in PostgreSQL so issue creation and export stay
-transactional. Large artifacts remain deferred to the storage abstraction described in the
-architecture.
+The MVP stores compact event receipts, error-group aggregates, one-minute buckets, bounded sanitized
+representative samples, and selected case evidence. It does not retain every raw event. Large
+artifacts remain deferred to the storage abstraction described in the architecture.
 
-Before storage, the service redacts sensitive JSON keys and common secret forms in text, including
-authorization headers, bearer tokens, credential assignments, URL credentials, and private keys.
-It computes byte size and SHA-256 only after redaction. Source selectors, attributes, issue text,
-analysis output, and resolution text also pass through deterministic sanitization.
+Before fingerprinting or storage, the service redacts sensitive JSON keys and common secret forms in
+text, including authorization headers, bearer tokens, credential assignments, URL credentials, and
+private keys. It computes fingerprints, byte sizes, and SHA-256 only after redaction. Source
+selectors, attributes, case text, analysis output, and resolution text also pass through
+deterministic sanitization.
 
 Redaction reduces accidental disclosure but is not a proof that arbitrary production data is safe.
 Projects still need allowlisted sources and tests for their own sensitive fields.
@@ -167,7 +181,8 @@ uv run ruff format --check src alembic tests
 ```
 
 The API tests use real migrations and PostgreSQL. They truncate only the configured test database.
-They cover token scope, token hashing, cross-project isolation, secret redaction, evidence access,
+They cover token scope, token hashing, cross-project isolation, event replay and conflict handling,
+concurrent grouping, occurrence buckets, automatic case creation, secret redaction, evidence access,
 analysis citations, human-only resolution, ZIP export, schema validation, and similar-case retrieval.
 CLI tests cover REST mapping, bearer-token handling, local size limits, path-free attachment
 provenance, timestamp normalization, bounded downloads, and stable error exits.

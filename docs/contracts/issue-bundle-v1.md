@@ -20,9 +20,11 @@ urn:debugrelay:schema:issue-bundle:v1
 
 ## Role
 
-Issue Bundle v1 is the stable, portable contract between DebugRelay, a developer, and an AI
-development agent. REST, CLI, file export, and MCP must represent the same concepts rather than
-inventing provider-specific payloads.
+Issue Bundle v1 is the stable, portable downstream contract between an automatically detected or
+manually recorded development case, a developer, and an AI development agent. Raw runtime events and
+error-group statistics are upstream monitoring concepts and are not copied wholesale into a bundle.
+REST, CLI, file export, and MCP must represent the same case concepts rather than inventing
+provider-specific payloads.
 
 The contract carries three distinct layers:
 

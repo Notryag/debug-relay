@@ -4,110 +4,116 @@
 
 ## Goal
 
-Prove that a problem can be recorded once, handed to a real AI development agent with enough context
-to inspect the correct source revision, and returned as a human-confirmed reusable case.
+Prove that a real application error can be observed automatically, deduplicated and grouped,
+converted into an agent-ready development case with the correct source revision, analyzed by an
+external AI development agent, and returned as a human-confirmed reusable resolution.
 
-The agent runtime may remain external to DebugRelay, but an AI diagnosis round trip is required for
-MVP acceptance. The core contract must not depend on one model or provider.
+The agent runtime may remain external. The primary path must not require a developer to author an
+issue form or JSON request.
 
 ## Current Progress
 
-- Complete: Issue Bundle v1 Draft 2020-12 JSON Schema
-- Complete: minimal, exception, and resolved portable examples
-- Complete: schema, reference-integrity, and content-integrity contract tests
-- Complete: PostgreSQL domain storage and initial migration
-- Complete: scoped project tokens, evidence redaction, REST workflow, and bundle export
-- Complete: PostgreSQL integration and security tests
-- Complete: CLI create, show, attach, export, analysis, resolution, and similar-case commands
-- Next: issue inbox, issue detail, and project settings web views
+Downstream case workflow already complete:
 
-## Vertical Slice
+- Issue Bundle v1 JSON Schema and portable examples
+- PostgreSQL case, evidence, analysis, and resolution storage
+- scoped project tokens, evidence redaction, REST case workflow, and ZIP export
+- deterministic similar resolved-case retrieval
+- REST-backed CLI for operational and agent handoff tasks
 
-1. Register a project and one repository mapping.
-2. Create an issue manually from the web or CLI.
-3. Record the exact source revision and attach bounded evidence.
-4. Sanitize, deduplicate, and export Issue Bundle v1.
-5. Let an external development agent read the bundle and authorized repository.
-6. Accept structured analysis containing evidence references and code locations.
-7. Let a developer confirm root cause, fix revision, checks, and outcome.
-8. Retrieve the resolved issue from a similar sample problem.
+First monitoring slice complete:
 
-## Required UI
+- product and architecture centered on continuous event intake
+- `ErrorEvent`, `ErrorGroup`, receipt, and occurrence-bucket persistence
+- deterministic fingerprinting, idempotent ingestion, and first-actionable-event detection
+- automatic agent-ready case creation when an error includes an immutable revision
+- group list and detail APIs plus CLI inspection commands
 
-- issue inbox
-- issue detail and evidence views
-- project and repository settings
-- issue creation
-- analysis review and resolution confirmation
+## Monitoring Vertical Slice
 
-There is no dashboard, chat page, or separate knowledge-base page in the MVP.
+1. Register a project and repository once.
+2. Continuously submit structured runtime errors with stable event IDs.
+3. Redact and normalize each event before fingerprinting or storage.
+4. Reject duplicate deliveries without incrementing counts.
+5. Group equivalent errors and update one-minute occurrence statistics.
+6. Automatically open one case for a new error group with an immutable commit.
+7. Export the generated Issue Bundle to an external development agent.
+8. Accept structured analysis with evidence and source-code citations.
+9. Let a developer confirm root cause, fix revision, checks, and outcome.
+10. Observe whether the group recurs after the verified fix.
 
 ## Required Interfaces
 
-- versioned Issue Bundle JSON Schema and fixtures
-- REST resources for projects, issues, evidence, analyses, and resolutions
-- CLI create, show, attach, export, report-analysis, and resolve commands
+- structured event intake API
+- error-group list and detail API with occurrence buckets
+- existing REST resources for cases, evidence, analyses, resolutions, and bundles
+- CLI group inspection, case export, analysis report, and resolution commands
+- error-group inbox, group detail, case detail, and project integration settings
 
-MCP is useful but follows the stable REST and bundle contract. It is not required to prove the first
-file-based agent handoff.
+MCP follows the stable REST and bundle contract. It is not required to prove the first file-based
+agent handoff.
 
 ## Acceptance Criteria
 
+- duplicate delivery of one event ID changes no count and creates no second case
+- equivalent sanitized errors produce one group and correct aggregate counts
+- a new `error` or `critical` group with a registered immutable revision opens one case
+- an event without a source revision remains observable but is not handed to an agent
+- no raw unbounded event stream is retained in DebugRelay
+- configured secret fixtures never appear in a fingerprint, sample, evidence, or exported bundle
+- the automatically generated case identifies the exact source revision
 - one real AI development agent completes an analysis round trip
-- the same issue bundle can be consumed without a provider-specific field
-- every handed-off issue identifies an immutable source revision
-- an exported bundle is readable without database access
-- configured secret fixtures never appear in stored or exported evidence
-- agent facts and hypotheses reference evidence IDs or source locations
+- facts and hypotheses reference evidence IDs or source locations
 - only a developer can confirm resolution
-- a resolution records root cause, fix revision, verification command or procedure, and result
-- a repeated sample problem retrieves its prior resolved case
+- a resolution records root cause, fix revision, verification procedure, and result
 - no core schema or service contains a Dayboard-specific field
 
 ## First Reference Case
 
-Dayboard is a suitable first dogfood project because its repository and Docker Compose runtime are
-locally available. The acceptance case should use only generic Git, file, HTTP, and Docker evidence
-adapters.
+Dayboard is the first dogfood source because its repository and Docker runtime are local. The
+acceptance case uses only generic structured-event, Git, file, HTTP, and Docker contracts.
 
-The first case should include:
+The case includes:
 
-- one reproducible application error
+- one reproducible application error emitted without manual issue creation
 - one exact repository revision
-- a small stack trace or log sample
-- agent analysis citing at least one evidence item and one source location
-- a real or fixture fix revision
-- a focused verification command and result
+- at least two duplicate or equivalent deliveries proving grouping and idempotency
+- a bounded stack or log sample
+- an automatically generated case
+- agent analysis citing evidence and a source location
+- a real or fixture fix revision and focused verification command
 
 ## Deferred Scope
 
-- automatic model invocation and model-provider budgets
+- high-volume raw log and metric retention
+- automatic model-provider invocation and budgets
 - built-in coding-agent orchestration
-- monitoring dashboards and alert routing
-- high-volume log or metrics retention
+- pager and on-call escalation management
 - autonomous code merge, deployment, rollback, or remediation
 - multi-tenant SaaS administration
 - Kubernetes Operator and node-level collector
-- cross-project embedding search and fine-tuning
-- replacement of existing issue trackers
+- embedding search and fine-tuning
+- replacement of existing observability or issue-tracking systems
 
 ## Delivery Stages
 
-1. Complete: finalize Issue Bundle v1 JSON Schema and representative fixtures.
-2. Complete: implement PostgreSQL domain storage and REST resources.
-3. Complete: add the CLI and portable API export.
-4. Next: build the issue inbox, issue detail, and project settings pages.
-5. Complete one real AI development-agent analysis and resolution round trip.
-6. Complete: add deterministic similar-case retrieval.
-7. Add generic Git, file, Docker, webhook, and HTTP evidence adapters.
-8. Add MCP and Kubernetes adapters only after the core contract is stable.
+1. Complete: downstream case, evidence, agent, resolution, bundle, and similarity workflow.
+2. Complete: operational CLI and file-oriented agent handoff.
+3. Complete: event contract, receipts, grouping, time buckets, and first-actionable-event detector.
+4. Next: add generic webhook and Docker collector with durable cursors and retries.
+5. Build error-group inbox, group detail, case detail, and project integration settings.
+6. Complete one real AI development-agent analysis and resolution round trip.
+7. Add rate, recurrence, and release-regression detectors with replay fixtures.
+8. Add OpenTelemetry and CI adapters.
+9. Add MCP and Kubernetes adapters only after core monitoring contracts are stable.
 
-## Remaining Acceptance Decisions
+## Remaining Decisions
 
-- the first external development agent used for acceptance testing
+- initial default thresholds after the first-seen detector
+- receipt, bucket, sample, and case retention periods
 - repository-locator to authorized-workspace mapping
-- retention policy beyond the current bounded sanitized-evidence MVP
-- the first end-to-end acceptance issue
+- first external development agent used for acceptance testing
+- exact Dayboard dogfood error
 
 Related: [Product Vision](product/vision.md), [System Architecture](architecture/overview.md), and
-[Issue Bundle v1](contracts/issue-bundle-v1.md).
+[Event and Evidence Pipeline](architecture/evidence-pipeline.md).

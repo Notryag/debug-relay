@@ -2,7 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from debugrelay.models import AgentAnalysisRow, EvidenceRow, IssueRow, ProjectRow, ResolutionRow
+from debugrelay.models import (
+    AgentAnalysisRow,
+    ErrorGroupRow,
+    ErrorOccurrenceBucketRow,
+    EvidenceRow,
+    IssueRow,
+    ProjectRow,
+    ResolutionRow,
+)
 
 
 def project_view(project: ProjectRow) -> dict[str, Any]:
@@ -112,4 +120,58 @@ def issue_view(issue: IssueRow) -> dict[str, Any]:
         "resolution": resolution_view(issue.resolution) if issue.resolution is not None else None,
         "created_at": issue.created_at,
         "updated_at": issue.updated_at,
+    }
+
+
+def error_group_detection_status(group: ErrorGroupRow) -> str:
+    if group.active_issue is not None:
+        return "case_resolved" if group.active_issue.state == "resolved" else "case_opened"
+    if group.highest_severity in {"error", "critical"} and group.latest_repository is None:
+        return "awaiting_revision"
+    return "observing"
+
+
+def error_group_summary(group: ErrorGroupRow) -> dict[str, Any]:
+    return {
+        "id": group.id,
+        "project_id": group.project_id,
+        "environment": group.environment,
+        "component": group.component,
+        "fingerprint": group.fingerprint,
+        "error_type": group.error_type,
+        "normalized_message": group.normalized_message,
+        "highest_severity": group.highest_severity,
+        "first_seen_at": group.first_seen_at,
+        "last_seen_at": group.last_seen_at,
+        "occurrence_count": group.occurrence_count,
+        "latest_source": group.latest_source,
+        "latest_repository": group.latest_repository,
+        "latest_release": group.latest_release,
+        "active_case_id": group.active_issue_id,
+        "active_case_state": group.active_issue.state if group.active_issue is not None else None,
+        "detection_status": error_group_detection_status(group),
+        "redaction_status": group.redaction_status,
+        "redaction_policy_version": group.redaction_policy_version,
+        "redaction_count": group.redaction_count,
+        "created_at": group.created_at,
+        "updated_at": group.updated_at,
+    }
+
+
+def error_group_view(
+    group: ErrorGroupRow,
+    buckets: list[ErrorOccurrenceBucketRow],
+) -> dict[str, Any]:
+    return {
+        **error_group_summary(group),
+        "latest_correlation": group.latest_correlation,
+        "sample": group.sample,
+        "sample_hash": group.sample_hash,
+        "buckets": [
+            {
+                "bucket_start": bucket.bucket_start,
+                "occurrence_count": bucket.occurrence_count,
+            }
+            for bucket in buckets
+        ],
     }

@@ -5,94 +5,130 @@
 ## Workflow
 
 ```text
-Project, developer, CI, or webhook
-                |
-                v
-          Create an issue
-                |
-                v
-  Sanitize and organize evidence
-                |
-                v
-       Build Issue Bundle v1
-                |
-                v
-  Development agent reads bundle
-                |
-                v
- Diagnosis, code locations, checks
-                |
-                v
- Developer confirms and applies fix
-                |
-                v
- Root cause, commit, and verification
-                |
-                v
-       Reusable resolved case
+Runtime or delivery source
+          |
+          v
+     ErrorEvent
+          |
+          v
+ validate, redact, normalize, fingerprint
+          |
+          v
+      ErrorGroup ----> OccurrenceBucket statistics
+          |
+          v
+     detection policy
+          |
+          v
+ DevelopmentCase (portable Issue Bundle)
+          |
+          v
+   AgentAnalysis
+          |
+          v
+ human-confirmed Resolution
+          |
+          v
+ recurrence feedback into the ErrorGroup
 ```
 
-The first complete implementation should support this entire vertical flow before adding broad
-automatic collection.
-
-## Issue Lifecycle
-
-The MVP has three states:
-
-- `open`: the problem exists and may still need context
-- `analyzing`: a development agent or developer is actively investigating
-- `resolved`: a developer confirmed the root cause, fix, and verification result
-
-Agent output alone cannot transition an issue to `resolved`. Reopening a resolved issue returns it
-to `open` while preserving the earlier resolution history.
+Continuous event intake is the primary entry point. A manual case is a fallback for local failures,
+developer observations, and integrations that cannot yet emit structured events.
 
 ## Core Concepts
 
 ### Project
 
-Project identity, repositories, allowed workspaces, evidence adapters, intake credentials, and
-redaction policy.
+Project identity, registered repositories, scoped intake and agent credentials, event sources,
+detection policy, redaction policy, and retention limits.
 
-### Repository
+### ErrorEvent
 
-A repository locator, its allowed local or remote access mapping, and immutable revision metadata.
-An issue may reference multiple repositories, but one should be identified as primary.
+One source observation of a failure. It has a project-scoped idempotency ID, UTC timestamp,
+environment, component, severity, error type and message, optional stack, provenance, correlation
+IDs, and release or repository identity.
 
-### Issue
+An event is untrusted input. DebugRelay validates and sanitizes it before computing a fingerprint or
+persisting any sample. A compact receipt may be retained for replay protection; the entire raw event
+stream is not the long-term product record.
 
-The reported symptom, expected behavior, actual behavior, reproduction steps, occurrence context,
-state, and exact source revision.
+### ErrorGroup
+
+A deterministic aggregation of equivalent events within a project, environment, and component. It
+records a normalized fingerprint, first and last occurrence, total count, highest severity, latest
+known release, a bounded sanitized sample, and its active development case if one exists.
+
+Grouping does not merge development history. A recurrence or regression may create a new case while
+remaining associated with the same long-lived error group.
+
+### OccurrenceBucket
+
+A bounded time bucket containing the number of accepted events for one error group. Buckets support
+trend and spike detection without retaining every raw event. The MVP uses one-minute UTC buckets.
+
+### DetectionPolicy
+
+Deterministic rules decide when a group becomes actionable. Useful triggers include:
+
+- a first-seen `error` or `critical` event with an immutable source revision
+- a count or rate threshold within a time window
+- recurrence after a confirmed resolution
+- a fingerprint appearing on a new release
+- severity escalation
+
+The first monitoring slice implements the first-seen trigger. Rate, regression, and recurrence
+detectors follow after enough event data exists to test them.
+
+### DevelopmentCase
+
+The actionable debugging record created by a detector. The existing REST and Issue Bundle v1
+contract currently call this record an `Issue`; product documentation uses `DevelopmentCase` to
+distinguish it from raw events and error groups.
+
+A case contains the symptom, selected evidence, exact source revision, state, agent analyses, and
+eventually a human-confirmed resolution. A detector may create a case automatically; manual creation
+uses the same downstream contract.
 
 ### Evidence
 
-A sanitized, attributable observation related to an issue. Evidence is bounded and retains its
-source, collection time, observed time range, query or selector, content hash, and redaction status.
-
-### Artifact
-
-A larger file such as a screenshot, trace export, source map reference, or compressed log sample.
-Artifact metadata remains relational while content is stored behind an artifact storage interface.
+A sanitized, bounded observation selected for one case. Evidence preserves its source, observation
+time, collection time, content hash, redaction status, and relationship to the anchor event.
 
 ### AgentAnalysis
 
 An agent's observed facts, ranked hypotheses, cited evidence, source-code locations, missing
-information, and proposed verification steps.
+information, proposed changes, and verification steps.
 
 ### Resolution
 
-The developer-confirmed root cause, changed files, fix revision, verification command or procedure,
-result, and applicable conditions.
+The developer-confirmed root cause, changed files, fix revision, verification procedure and result,
+and affected conditions.
+
+## Lifecycles
+
+Error groups are durable aggregate identities. They may exist without an actionable case when a
+revision is missing or a detection threshold has not been met.
+
+Development cases retain the small lifecycle:
+
+- `open`: automatically detected or manually recorded and awaiting analysis
+- `analyzing`: an agent or developer has submitted active analysis
+- `resolved`: a developer confirmed root cause, fix, and verification
+
+Agent output alone cannot resolve a case. A later recurrence preserves the prior resolution and
+opens a new case rather than silently overwriting history.
 
 ## Invariants
 
-- Every issue identifies an immutable source revision before agent handoff.
-- Facts cite evidence IDs or source-code locations.
-- Hypotheses are explicitly marked and remain distinct from facts.
-- Evidence is not silently mutated after agent handoff; derived or corrected evidence is added with
-  provenance.
+- Event IDs are idempotent within a project.
+- Redaction precedes fingerprinting, sample storage, and case evidence creation.
+- Group counts increase only for accepted, non-duplicate events.
+- Every event retains source provenance and an observation timestamp.
+- Every automatically opened case identifies an immutable source revision.
+- Error groups may be merged or split only through explicit reviewed operations, not model output.
+- Agent facts cite evidence IDs or source-code locations.
 - A resolution records both the fix and how it was verified.
-- Similarity does not merge issue history automatically; a developer can reject a bad match.
+- Only a human-authorized action confirms resolution.
 
-Related: [Issue Bundle v1](../contracts/issue-bundle-v1.md),
-[Evidence Pipeline](../architecture/evidence-pipeline.md), and
+Related: [Product Vision](vision.md), [Evidence Pipeline](../architecture/evidence-pipeline.md), and
 [Development Agent Interface](../integrations/agent-interface.md).

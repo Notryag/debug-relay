@@ -30,6 +30,10 @@ def mock_api(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Request]:
             return httpx.Response(200, json={"id": "ISSUE-1", "state": "open"}, request=request)
         if request.method == "GET" and path == "/api/issues/ISSUE-1/similar":
             return httpx.Response(200, json={"items": []}, request=request)
+        if request.method == "GET" and path == "/api/error-groups":
+            return httpx.Response(200, json={"items": []}, request=request)
+        if request.method == "GET" and path == "/api/error-groups/GROUP-1":
+            return httpx.Response(200, json={"id": "GROUP-1"}, request=request)
         if request.method == "GET" and path == "/api/issues/ISSUE-1/bundle":
             return httpx.Response(200, content=b"zip-content", request=request)
         if request.method == "POST" and path == "/api/projects":
@@ -94,6 +98,8 @@ def test_project_and_issue_create_accept_stdin(mock_api: list[httpx.Request]) ->
         (("issue", "show", "ISSUE-1"), "/api/issues/ISSUE-1"),
         (("issue", "list", "--project", "project-1"), "/api/issues"),
         (("issue", "similar", "ISSUE-1"), "/api/issues/ISSUE-1/similar"),
+        (("groups", "list", "--project", "project-1"), "/api/error-groups"),
+        (("groups", "show", "GROUP-1"), "/api/error-groups/GROUP-1"),
     ],
 )
 def test_read_commands_map_to_rest_resources(

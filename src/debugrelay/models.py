@@ -45,6 +45,10 @@ class ProjectRow(Base):
         lazy="selectin",
     )
     issues: Mapped[list[IssueRow]] = relationship(back_populates="project")
+    error_groups: Mapped[list[ErrorGroupRow]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+    )
 
 
 class RepositoryRow(Base):
@@ -168,6 +172,121 @@ class IssueRepositoryRow(Base):
     subdirectory: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
     issue: Mapped[IssueRow] = relationship(back_populates="repositories")
+
+
+class ErrorGroupRow(Base):
+    __tablename__ = "error_groups"
+    __table_args__ = (
+        CheckConstraint(
+            "highest_severity IN ('warning', 'error', 'critical')",
+            name="ck_error_groups_severity",
+        ),
+        CheckConstraint("occurrence_count > 0", name="ck_error_groups_occurrence_count"),
+        CheckConstraint(
+            "redaction_status = 'sanitized'",
+            name="ck_error_groups_redaction_status",
+        ),
+        UniqueConstraint(
+            "project_id",
+            "environment",
+            "component",
+            "fingerprint",
+            name="uq_error_groups_identity",
+        ),
+        UniqueConstraint("active_issue_id", name="uq_error_groups_active_issue"),
+        Index("ix_error_groups_project_last_seen", "project_id", "last_seen_at"),
+        Index("ix_error_groups_project_severity", "project_id", "highest_severity"),
+    )
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    environment: Mapped[str] = mapped_column(String(128), nullable=False)
+    component: Mapped[str] = mapped_column(String(128), nullable=False)
+    fingerprint: Mapped[str] = mapped_column(String(71), nullable=False)
+    error_type: Mapped[str] = mapped_column(String(256), nullable=False)
+    normalized_message: Mapped[str] = mapped_column(Text, nullable=False)
+    highest_severity: Mapped[str] = mapped_column(String(16), nullable=False)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    occurrence_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    latest_source: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    latest_repository: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    latest_release: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    latest_correlation: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    sample: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    sample_hash: Mapped[str] = mapped_column(String(71), nullable=False)
+    redaction_status: Mapped[str] = mapped_column(String(16), nullable=False)
+    redaction_policy_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    redaction_count: Mapped[int] = mapped_column(nullable=False, default=0)
+    active_issue_id: Mapped[str | None] = mapped_column(
+        ForeignKey("issues.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    project: Mapped[ProjectRow] = relationship(back_populates="error_groups")
+    active_issue: Mapped[IssueRow | None] = relationship(lazy="selectin")
+    receipts: Mapped[list[ErrorEventReceiptRow]] = relationship(
+        back_populates="group",
+        cascade="all, delete-orphan",
+    )
+    buckets: Mapped[list[ErrorOccurrenceBucketRow]] = relationship(
+        back_populates="group",
+        cascade="all, delete-orphan",
+        order_by="ErrorOccurrenceBucketRow.bucket_start",
+    )
+
+
+class ErrorEventReceiptRow(Base):
+    __tablename__ = "error_event_receipts"
+
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    event_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    group_id: Mapped[str] = mapped_column(
+        ForeignKey("error_groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(71), nullable=False)
+
+    group: Mapped[ErrorGroupRow] = relationship(back_populates="receipts")
+
+
+class ErrorOccurrenceBucketRow(Base):
+    __tablename__ = "error_occurrence_buckets"
+    __table_args__ = (
+        CheckConstraint("occurrence_count > 0", name="ck_error_buckets_occurrence_count"),
+    )
+
+    group_id: Mapped[str] = mapped_column(
+        ForeignKey("error_groups.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    bucket_start: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        primary_key=True,
+    )
+    occurrence_count: Mapped[int] = mapped_column(BigInteger, nullable=False)
+
+    group: Mapped[ErrorGroupRow] = relationship(back_populates="buckets")
 
 
 class EvidenceRow(Base):

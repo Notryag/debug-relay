@@ -7,6 +7,7 @@ services:
     environment:
       DEBUGRELAY_ENV: ${DEBUGRELAY_ENV:-local}
       DEBUGRELAY_ADMIN_TOKEN: ${DEBUGRELAY_ADMIN_TOKEN:-debugrelay-local-admin}
+      DEBUGRELAY_MAX_EVENT_BYTES: ${DEBUGRELAY_MAX_EVENT_BYTES:-262144}
       DATABASE_URL: ${DEBUGRELAY_DOCKER_DATABASE_URL:-postgresql+asyncpg://debugrelay:debugrelay@postgres:5432/debugrelay}
     networks:
       - shared-postgres

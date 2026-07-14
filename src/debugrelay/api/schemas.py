@@ -58,6 +58,7 @@ EvidenceKind = Literal[
     "other",
 ]
 EvidenceRelation = Literal["anchor", "correlated", "derived", "historical"]
+ErrorSeverity = Literal["warning", "error", "critical"]
 
 
 class ApiModel(BaseModel):
@@ -282,6 +283,87 @@ class IssueView(ApiModel):
 
 class IssueList(ApiModel):
     items: list[IssueView]
+
+
+class EventRepository(ApiModel):
+    repository_id: Identifier
+    commit_sha: GitCommit
+    branch: Annotated[str | None, Field(default=None, min_length=1, max_length=256)]
+
+
+class ErrorDetails(ApiModel):
+    type: Annotated[str, Field(min_length=1, max_length=256)]
+    message: Annotated[str, Field(min_length=1, max_length=8192)]
+    stack: Annotated[
+        list[Annotated[str, Field(min_length=1, max_length=4096)]],
+        Field(default_factory=list, max_length=100),
+    ]
+
+
+class ErrorEventCreate(ApiModel):
+    event_id: Identifier
+    project_id: Identifier
+    occurred_at: UtcDatetime
+    environment: Identifier
+    component: Identifier
+    severity: ErrorSeverity
+    error: ErrorDetails
+    source: EvidenceSource
+    repository: EventRepository | None = None
+    service: ServiceIdentity | None = None
+    correlation: Correlation | None = None
+    release: ReleaseIdentity | None = None
+    attributes: dict[str, Any] = Field(default_factory=dict, max_length=100)
+
+
+class OccurrenceBucketView(ApiModel):
+    bucket_start: datetime
+    occurrence_count: int
+
+
+class ErrorGroupSummary(ApiModel):
+    id: str
+    project_id: str
+    environment: str
+    component: str
+    fingerprint: str
+    error_type: str
+    normalized_message: str
+    highest_severity: ErrorSeverity
+    first_seen_at: datetime
+    last_seen_at: datetime
+    occurrence_count: int
+    latest_source: dict[str, Any]
+    latest_repository: dict[str, Any] | None
+    latest_release: dict[str, Any] | None
+    active_case_id: str | None
+    active_case_state: IssueState | None
+    detection_status: Literal["observing", "awaiting_revision", "case_opened", "case_resolved"]
+    redaction_status: Literal["sanitized"]
+    redaction_policy_version: str
+    redaction_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class ErrorGroupView(ErrorGroupSummary):
+    latest_correlation: dict[str, Any] | None
+    sample: dict[str, Any]
+    sample_hash: str
+    buckets: list[OccurrenceBucketView]
+
+
+class ErrorGroupList(ApiModel):
+    items: list[ErrorGroupSummary]
+
+
+class ErrorEventIngested(ApiModel):
+    event_id: str
+    accepted: bool
+    duplicate: bool
+    group: ErrorGroupSummary
+    case_id: str | None
+    detection: Literal["none", "first_actionable_event"]
 
 
 class SourceLocation(ApiModel):

@@ -27,6 +27,12 @@ class Settings(BaseSettings):
         ge=1024,
         le=10 * 1024 * 1024,
     )
+    max_event_bytes: int = Field(
+        default=256 * 1024,
+        alias="DEBUGRELAY_MAX_EVENT_BYTES",
+        ge=1024,
+        le=1024 * 1024,
+    )
     cors_origins: str = Field(
         default="http://localhost:3000,http://127.0.0.1:3000",
         alias="DEBUGRELAY_CORS_ORIGINS",

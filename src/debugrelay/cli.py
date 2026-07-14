@@ -43,15 +43,20 @@ class CliOptions:
 
 app = typer.Typer(
     name="debugrelay",
-    help="Developer issue context and AI-agent handoff CLI.",
+    help="Continuous error monitoring and AI development-case CLI.",
     no_args_is_help=True,
     add_completion=False,
     pretty_exceptions_enable=False,
 )
 project_app = typer.Typer(help="Register and inspect DebugRelay projects.", no_args_is_help=True)
-issue_app = typer.Typer(help="Create, inspect, and resolve developer issues.", no_args_is_help=True)
+issue_app = typer.Typer(
+    help="Inspect and resolve development cases; manual creation is a fallback.",
+    no_args_is_help=True,
+)
+groups_app = typer.Typer(help="Inspect continuously observed error groups.", no_args_is_help=True)
 app.add_typer(project_app, name="project")
 app.add_typer(issue_app, name="issue")
+app.add_typer(groups_app, name="groups")
 
 
 def _version_callback(value: bool) -> None:
@@ -346,6 +351,59 @@ def issue_show(
 def client_issue_path(issue_id: str, suffix: str = "") -> str:
     _safe_identifier(issue_id, "issue ID")
     return f"api/issues/{quote(issue_id, safe='')}{suffix}"
+
+
+def client_group_path(group_id: str) -> str:
+    _safe_identifier(group_id, "error group ID")
+    return f"api/error-groups/{quote(group_id, safe='')}"
+
+
+@groups_app.command("list")
+def groups_list(
+    ctx: typer.Context,
+    project_id: Annotated[str, typer.Option("--project", help="Project ID.")],
+    environment: Annotated[
+        str | None,
+        typer.Option("--environment", help="Filter by environment."),
+    ] = None,
+    component: Annotated[
+        str | None,
+        typer.Option("--component", help="Filter by component."),
+    ] = None,
+    severity: Annotated[
+        str | None,
+        typer.Option("--severity", help="Filter by warning, error, or critical."),
+    ] = None,
+    limit: Annotated[int, typer.Option("--limit", help="Maximum number of groups.")] = 50,
+) -> None:
+    try:
+        _safe_identifier(project_id, "project ID")
+        if limit < 1 or limit > 100:
+            raise CliInputError("limit must be between 1 and 100")
+    except CliInputError as error:
+        _fail_local(str(error))
+    params: dict[str, Any] = {"project_id": project_id, "limit": limit}
+    if environment is not None:
+        params["environment"] = environment
+    if component is not None:
+        params["component"] = component
+    if severity is not None:
+        params["severity"] = severity
+    with connected(ctx) as client:
+        _emit_json(client.get_json("api/error-groups", params=params))
+
+
+@groups_app.command("show")
+def groups_show(
+    ctx: typer.Context,
+    group_id: Annotated[str, typer.Argument(help="Error group ID.")],
+) -> None:
+    try:
+        path = client_group_path(group_id)
+    except CliInputError as error:
+        _fail_local(str(error))
+    with connected(ctx) as client:
+        _emit_json(client.get_json(path))
 
 
 @issue_app.command("attach")

@@ -4,94 +4,146 @@
 
 ## Purpose
 
-DebugRelay is an AI-native, model-agnostic developer tool for capturing a software problem,
-packaging the relevant context, handing that context to a development agent, and recording the
-verified fix.
+DebugRelay continuously observes software error signals, groups and measures repeated failures,
+turns actionable groups into development cases, hands selected context to an AI development agent,
+and records the human-verified fix.
 
 Its purpose is:
 
-> Make every debugging session useful to the next one.
+> Detect code problems early, locate them quickly, and make every verified fix useful to the next
+> occurrence.
 
-DebugRelay is the context and feedback layer between a project and an AI development agent. AI
-diagnosis is part of the core product workflow, while the agent may be local, remote, interactive,
-or automated. The contract remains independent of a specific model or provider.
+The primary workflow begins with runtime events, not a developer filling in an issue form. Manual
+issue creation remains a fallback for local reproduction and sources that cannot emit events.
+
+DebugRelay is AI-native and model-agnostic. AI diagnosis is part of the case workflow, but models do
+not inspect the unfiltered event stream and are not responsible for security filtering, grouping,
+counting, or trigger decisions.
 
 ## Questions the Product Answers
 
-For every reported problem, a developer should be able to answer:
+For each project, a developer should be able to answer:
 
-1. What happened, where, and against which code revision?
-2. What evidence is relevant to the problem?
-3. What did the development agent conclude, and which code supports that conclusion?
-4. What change fixed the problem, and how was the fix verified?
-5. Has a sufficiently similar problem already been solved?
+1. Which errors are new, increasing, recurring, or associated with a release?
+2. How often did an error occur, where, and across which revisions?
+3. Which bounded evidence caused DebugRelay to open a development case?
+4. What did the development agent conclude, and which evidence or code supports it?
+5. What change fixed the problem, how was it verified, and did the error stop recurring?
+
+## Primary Workflow
+
+```text
+Applications / CI / Docker / Kubernetes / OpenTelemetry / error services
+                                  |
+                                  v
+                   Authenticated error events
+                                  |
+                                  v
+               Validate -> redact -> normalize -> fingerprint
+                                  |
+                                  v
+                    Group -> count -> time buckets
+                                  |
+                                  v
+            Detect new error / spike / regression / recurrence
+                                  |
+                                  v
+            Automatically create or update a development case
+                                  |
+                                  v
+                  AI agent diagnosis and code locations
+                                  |
+                                  v
+                 Developer-confirmed fix and verification
+                                  |
+                                  v
+                    Reusable case and detection feedback
+```
 
 ## DebugRelay Responsibilities
 
-- issue intake from the web UI, CLI, API, and adapters
-- repository and exact revision identity
-- evidence validation, redaction, normalization, correlation, and deduplication
-- portable, versioned issue bundles
-- evidence provenance and access control
-- development-agent analysis records
+- continuous authenticated intake from collectors, SDKs, webhooks, and observability adapters
+- pre-storage redaction, normalization, deterministic fingerprinting, and idempotent receipts
+- error groups with first seen, last seen, count, affected revision, and bounded time buckets
+- deterministic detection of first-seen errors, volume changes, recurrences, and release regressions
+- automatic development-case creation and evidence selection
+- exact repository and release identity before agent handoff
+- portable Issue Bundle generation for an external development agent
+- structured agent analyses with evidence and source citations
 - human-confirmed root causes, fixes, and verification results
-- retrieval of similar resolved cases
+- retrieval of similar resolved cases and feedback into later detection
+
+## Data Boundary
+
+DebugRelay is an error surveillance and development-case system, not a general log or metrics
+database. Existing systems such as OpenTelemetry collectors, Sentry, Loki, Prometheus, CI services,
+Docker, and Kubernetes remain sources of truth for broad telemetry.
+
+DebugRelay stores:
+
+- event IDs and hashes needed for idempotency
+- normalized error-group identity and aggregate counts
+- bounded time buckets and a small sanitized representative sample
+- selected evidence attached to an actionable case
+- agent analysis and verified resolution history
+
+It does not retain an unbounded copy of every raw log line, trace, request body, or metric series.
 
 ## Development Agent Responsibilities
 
-- read the issue bundle and authorized source repository
-- request additional bounded evidence when necessary
-- locate relevant files, symbols, and lines
+- read an automatically prepared case bundle and an authorized source checkout
+- inspect the exact source revision associated with the detected error
 - separate observed facts from hypotheses
-- propose verification steps and code changes
-- run checks in an authorized development environment
-- report diagnosis, touched code, and verification results
+- cite evidence IDs and concrete source locations
+- propose bounded checks and code changes
+- report diagnosis and verification results through the stable case interface
 
-An agent may report a candidate resolution, but only a developer can confirm an issue as resolved.
+An agent may propose a fix, but only a developer can confirm that a case is resolved.
 
 ## Non-Goals
 
 The first version is not:
 
-- a monitoring dashboard or alerting engine
-- a log or metrics database
+- a general-purpose observability store or dashboard
+- a pager, escalation-policy, or on-call scheduling product
 - a replacement for GitHub Issues, Jira, Sentry, Prometheus, Grafana, or Loki
-- an embedded chat product or built-in coding-agent runtime
+- a provider-specific model runtime or embedded chat product
 - an autonomous production-remediation system
 - a Kubernetes management platform
 
-Those systems may become issue sources or evidence adapters. They are not prerequisites.
-
 ## Data Flywheel
 
-Raw log volume is not the flywheel. The valuable record is the reviewed chain:
+Raw event volume is not the flywheel. The valuable reviewed chain is:
 
 ```text
-Problem fingerprint
-  -> selected evidence
-  -> agent hypotheses
-  -> checks and results
+Normalized error group and occurrence pattern
+  -> detection decision
+  -> selected evidence and exact revision
+  -> agent hypotheses and checks
   -> confirmed root cause
   -> changed files and fix commit
-  -> tests and production verification
+  -> verification result
+  -> post-fix recurrence or non-recurrence
 ```
 
-Initial retrieval should use deterministic fingerprints and text search. Each resolved issue later
-becomes both a retrieval candidate and an evaluation case. Model training or fine-tuning is deferred
-until there are enough representative, reviewed cases.
+Resolved cases improve later grouping, prioritization, evidence selection, and diagnosis evaluation.
+Model training or fine-tuning remains deferred until representative human-reviewed cases exist.
 
 Useful quality measures include:
 
+- duplicate event rejection rate
+- false error-group merge and split rates
+- detection-to-case precision
+- time from first occurrence to actionable case
 - top-three root-cause accuracy
-- accepted evidence rate
-- false issue-merge rate
-- time to confirmed cause
-- whether a matched historical case helped resolve the new issue
+- whether a matched historical case shortened resolution time
+- whether the error recurred after a confirmed fix
 
 ## First Reference Project
 
-Dayboard may be used to exercise the first end-to-end workflow because its repository and runtime
-are locally available. DebugRelay must still use generic Git, file, HTTP, and runtime adapters; no
-core field or service may contain a Dayboard-specific concept.
+Dayboard may exercise the first end-to-end monitoring flow because its repository and Docker runtime
+are locally available. The implementation must use generic structured-event, Git, Docker, file, and
+HTTP contracts; no core field or service may contain a Dayboard-specific concept.
 
-Related: [Core Workflow](workflow.md) and [MVP Plan](../mvp.md).
+Related: [Core Workflow](workflow.md), [System Architecture](../architecture/overview.md), and
+[MVP Plan](../mvp.md).

@@ -5,10 +5,11 @@ This wiki is the source of truth for DebugRelay product and engineering decision
 
 ## Current Status
 
-DebugRelay has completed its first backend vertical slice and CLI: Issue Bundle v1, PostgreSQL
-persistence, scoped tokens, evidence redaction, REST resources, ZIP export, similar-case retrieval,
-and file-oriented developer and agent commands. The web application and real-agent acceptance case
-are next; public production exposure remains deferred.
+DebugRelay's primary entry point is continuous error surveillance. Structured event intake,
+idempotent receipts, deterministic grouping, one-minute statistics, first-actionable-event case
+creation, and the downstream evidence, agent-analysis, resolution, bundle, similarity, and CLI
+workflow are implemented. Generic webhook and Docker collection are next; public production
+exposure remains deferred.
 
 ## Read by Task
 
@@ -55,13 +56,14 @@ Integration implementation:
 
 ## Product Boundary
 
-DebugRelay owns problem context, evidence provenance, AI development-agent handoff, and verified
-resolution history. It does not own monitoring, alert routing, source control, issue tracking, a
-provider-specific model runtime, or production remediation.
+DebugRelay owns bounded error surveillance, grouping and detection, development-case context,
+evidence provenance, AI development-agent handoff, and verified resolution history. It does not own
+general telemetry storage, on-call routing, source control, issue tracking, a provider-specific model
+runtime, or production remediation.
 
 ## Documentation Rules
 
 - Each durable concept has one canonical page.
 - Other pages link to that definition instead of copying it.
-- Contract examples are versioned and testable once implementation begins.
+- Contract examples are versioned fixtures and remain testable as the implementation evolves.
 - Decisions that change product boundaries must update the Product Vision and MVP Plan together.

@@ -4,9 +4,9 @@
 
 ## Boundary
 
-The development agent is external to DebugRelay. DebugRelay packages and serves problem context;
-the agent inspects authorized source code, analyzes the issue, performs development checks, and
-reports structured results.
+The development agent is external to DebugRelay. Deterministic monitoring opens a development case
+and DebugRelay packages selected context; the agent inspects authorized source code, analyzes the
+case, performs development checks, and reports structured results.
 
 DebugRelay does not prescribe a model provider or agent runtime. A local CLI-based agent, an IDE
 agent, a remote service, and a file-only workflow must all be able to consume the same issue.
@@ -19,6 +19,9 @@ adapters over those resources.
 Implemented REST resources:
 
 ```text
+POST /api/events
+GET  /api/error-groups
+GET  /api/error-groups/{group_id}
 POST /api/issues
 GET  /api/issues/{issue_id}
 POST /api/issues/{issue_id}/evidence
@@ -38,6 +41,8 @@ The implemented command surface is:
 ```text
 debugrelay project create PROJECT_JSON
 debugrelay project show PROJECT_ID
+debugrelay groups list --project PROJECT_ID
+debugrelay groups show GROUP_ID
 debugrelay issue create ISSUE_JSON
 debugrelay issue list --project PROJECT_ID
 debugrelay issue show ISSUE_ID
@@ -47,9 +52,10 @@ debugrelay issue report-analysis ISSUE_ID RESULT_JSON
 debugrelay issue resolve ISSUE_ID RESOLUTION_JSON
 ```
 
-The CLI is the simplest portable handoff. An exported bundle must remain usable when the agent has
-no live access to the DebugRelay server. Configuration, token scopes, file limits, and examples are
-documented in the [Command-Line Interface](../cli.md).
+The CLI is the simplest portable handoff. The normal path begins with a detected group and its
+automatically opened case; manual JSON case creation is only an adapter-debugging fallback. An
+exported bundle remains usable when the agent has no live access to the server. Configuration,
+scopes, and limits are documented in the [Command-Line Interface](../cli.md).
 
 ## MCP Adapter
 
@@ -82,10 +88,10 @@ case library.
 
 ## Agent Access
 
-- The issue identifies repository locators and exact revisions.
+- The automatically opened case identifies repository locators and exact revisions.
 - A local deployment maps configured repositories to allowlisted workspace roots.
 - A remote deployment uses scoped source-provider access or a prepared workspace.
-- DebugRelay does not accept an arbitrary filesystem path from an issue reporter.
+- Runtime events and cases do not grant access to an arbitrary filesystem path.
 - The agent receives no production shell, Kubernetes exec, database write, or deployment capability
   from DebugRelay.
 - Agent write credentials can report analysis but cannot confirm resolution.
