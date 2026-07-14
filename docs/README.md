@@ -5,8 +5,9 @@ This wiki is the source of truth for DebugRelay product and engineering decision
 
 ## Current Status
 
-DebugRelay is in the design stage. Implementation should begin only after Issue Bundle v1 and the
-first end-to-end acceptance case are concrete enough to test.
+DebugRelay is in its contract-first stage. Issue Bundle v1 now has an executable JSON Schema, three
+portable examples, and contract tests. Application implementation begins with the domain storage and
+REST resources after the first acceptance case is selected.
 
 ## Read by Task
 

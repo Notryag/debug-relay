@@ -1,0 +1,9 @@
+{
+  "commit_sha": "2222222222222222222222222222222222222222",
+  "files": [
+    {
+      "path": "src/inventory/config.py",
+      "summary": "Reduced the default inventory request timeout."
+    }
+  ]
+}

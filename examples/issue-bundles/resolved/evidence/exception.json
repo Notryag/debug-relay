@@ -1,0 +1,11 @@
+{
+  "exception": {
+    "message": "The inventory reservation expired before order creation.",
+    "stacktrace": [
+      "src/checkout/service.py:84 in create_order"
+    ],
+    "type": "ExpiredReservation"
+  },
+  "request_id": "request-example-300",
+  "service": "checkout-api"
+}

@@ -1,0 +1,56 @@
+{
+  "schema_version": "debugrelay.issue-bundle/v1",
+  "generated_at": "2026-07-14T02:05:00Z",
+  "redaction_status": "sanitized",
+  "issue": {
+    "id": "DR-100",
+    "project_id": "demo-shop",
+    "environment": "development",
+    "component": "web",
+    "state": "open",
+    "occurred_at": "2026-07-14T02:00:00Z",
+    "reported_at": "2026-07-14T02:03:00Z",
+    "summary": "Checkout form does not submit",
+    "expected": "Submitting a valid cart opens the order confirmation page.",
+    "actual": "The submit button stops responding and the page remains on checkout.",
+    "reproduction": [
+      "Open the checkout page with a valid cart.",
+      "Enter valid delivery details.",
+      "Submit the form."
+    ],
+    "service": {
+      "name": "demo-web",
+      "version": "1111111111111111111111111111111111111111"
+    },
+    "evidence_refs": ["EVIDENCE-REPORT-1"]
+  },
+  "repositories": [
+    {
+      "id": "repo-main",
+      "role": "primary",
+      "locator": "https://example.invalid/demo/shop.git",
+      "commit_sha": "1111111111111111111111111111111111111111",
+      "branch": "main"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EVIDENCE-REPORT-1",
+      "kind": "user_report",
+      "summary": "Developer-provided symptom and reproduction steps",
+      "observed_at": "2026-07-14T02:00:00Z",
+      "collected_at": "2026-07-14T02:03:00Z",
+      "source": {
+        "adapter": "manual",
+        "locator": "debugrelay://projects/demo-shop/issues/DR-100"
+      },
+      "relation": "anchor",
+      "content_type": "application/json",
+      "content_hash": "sha256:1484fccb4b7a2071da12670e7f46a98ccb754d46b62fa8fd2998f9f32c8ac8a6",
+      "size_bytes": 297,
+      "content_ref": "evidence/user-report.json",
+      "redaction_status": "sanitized",
+      "redaction_policy_version": "default-v1"
+    }
+  ]
+}

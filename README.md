@@ -116,13 +116,13 @@ Prometheus、Loki、Docker 和 Kubernetes 都可以成为问题或证据来源�
 
 ## 当前状态
 
-项目处于设计阶段，尚未发布可运行版本。最近的开发目标是完成：
+项目处于契约优先的早期开发阶段，尚未发布可运行版本。Issue Bundle v1 JSON Schema、三个便携
+样例和契约测试已经完成。接下来的开发目标是：
 
-1. Issue Bundle v1 JSON Schema 与示例
-2. 问题、证据、Agent 分析和解决结果的数据模型
-3. REST API 与 CLI 的最小闭环
-4. 问题收件箱和问题详情页面
-5. 一次真实的 AI 开发 Agent 分析与修复验证
+1. 问题、证据、Agent 分析和解决结果的数据模型
+2. REST API 与 CLI 的最小闭环
+3. 问题收件箱和问题详情页面
+4. 一次真实的 AI 开发 Agent 分析与修复验证
 
 Dayboard 可以作为第一个试用项目，但 DebugRelay 的核心设计不会依赖 Dayboard。
 

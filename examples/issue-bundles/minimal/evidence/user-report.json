@@ -1,0 +1,9 @@
+{
+  "actual": "The submit button stops responding and the page remains on checkout.",
+  "expected": "Submitting a valid cart opens the order confirmation page.",
+  "reproduction": [
+    "Open the checkout page with a valid cart.",
+    "Enter valid delivery details.",
+    "Submit the form."
+  ]
+}

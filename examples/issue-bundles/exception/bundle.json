@@ -1,0 +1,91 @@
+{
+  "schema_version": "debugrelay.issue-bundle/v1",
+  "generated_at": "2026-07-14T03:04:00Z",
+  "redaction_status": "sanitized",
+  "issue": {
+    "id": "DR-200",
+    "project_id": "example-api",
+    "environment": "production",
+    "component": "checkout-api",
+    "state": "open",
+    "occurred_at": "2026-07-14T03:00:00Z",
+    "reported_at": "2026-07-14T03:01:00Z",
+    "summary": "Checkout request fails after a deployment",
+    "expected": "The checkout endpoint creates an order within the request timeout.",
+    "actual": "The checkout endpoint returns an internal error while waiting for inventory.",
+    "reproduction": [
+      "Send a checkout request for an in-stock item.",
+      "Observe the response from the checkout API."
+    ],
+    "fingerprint": "checkout-inventory-timeout-v1",
+    "labels": ["checkout", "regression"],
+    "service": {
+      "name": "checkout-api",
+      "version": "2222222222222222222222222222222222222222"
+    },
+    "correlation": {
+      "trace_id": "0123456789abcdef0123456789abcdef",
+      "span_id": "0123456789abcdef",
+      "request_id": "request-example-200"
+    },
+    "release": {
+      "deployment_id": "deploy-200",
+      "deployed_at": "2026-07-14T02:55:00Z",
+      "image_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "evidence_refs": ["EVIDENCE-EXCEPTION-1", "EVIDENCE-CHANGE-1"]
+  },
+  "repositories": [
+    {
+      "id": "repo-main",
+      "role": "primary",
+      "locator": "https://example.invalid/example/api.git",
+      "commit_sha": "2222222222222222222222222222222222222222",
+      "branch": "main"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EVIDENCE-EXCEPTION-1",
+      "kind": "exception",
+      "summary": "Timeout raised while the checkout service waits for inventory",
+      "observed_at": "2026-07-14T03:00:00Z",
+      "collected_at": "2026-07-14T03:01:10Z",
+      "source": {
+        "adapter": "structured-log",
+        "locator": "logs://example-api/checkout-api",
+        "selector": "request_id=request-example-200"
+      },
+      "relation": "anchor",
+      "content_type": "application/json",
+      "content_hash": "sha256:9689f888952ad3664d7a08b0cf8dd8c6005293aa810447605727ca7e6016b154",
+      "size_bytes": 367,
+      "content_ref": "evidence/exception.json",
+      "redaction_status": "sanitized",
+      "redaction_policy_version": "default-v1",
+      "attributes": {
+        "exception.type": "InventoryTimeout",
+        "request_id": "request-example-200"
+      }
+    },
+    {
+      "id": "EVIDENCE-CHANGE-1",
+      "kind": "change",
+      "summary": "The current release changed the inventory timeout configuration",
+      "observed_at": "2026-07-14T02:55:00Z",
+      "collected_at": "2026-07-14T03:02:00Z",
+      "source": {
+        "adapter": "git",
+        "locator": "https://example.invalid/example/api.git",
+        "selector": "2222222222222222222222222222222222222222"
+      },
+      "relation": "correlated",
+      "content_type": "application/json",
+      "content_hash": "sha256:e953bf9a465b7d78c11d2a051e05ed85a13b5a74c2774cfec57269b74858c286",
+      "size_bytes": 200,
+      "content_ref": "evidence/recent-change.json",
+      "redaction_status": "sanitized",
+      "redaction_policy_version": "default-v1"
+    }
+  ]
+}

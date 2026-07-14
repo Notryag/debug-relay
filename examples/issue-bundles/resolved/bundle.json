@@ -1,0 +1,221 @@
+{
+  "schema_version": "debugrelay.issue-bundle/v1",
+  "generated_at": "2026-07-14T04:30:00Z",
+  "redaction_status": "sanitized",
+  "issue": {
+    "id": "DR-300",
+    "project_id": "example-api",
+    "environment": "production",
+    "component": "checkout-api",
+    "state": "resolved",
+    "occurred_at": "2026-07-14T04:00:00Z",
+    "reported_at": "2026-07-14T04:01:00Z",
+    "summary": "Checkout request uses an expired inventory reservation",
+    "expected": "The checkout service refreshes an expired reservation before creating an order.",
+    "actual": "The service submits an expired reservation and the order request fails.",
+    "reproduction": [
+      "Create an inventory reservation.",
+      "Wait until the reservation expires.",
+      "Submit checkout with the expired reservation."
+    ],
+    "fingerprint": "checkout-expired-reservation-v1",
+    "service": {
+      "name": "checkout-api",
+      "version": "3333333333333333333333333333333333333333"
+    },
+    "correlation": {
+      "trace_id": "abcdef0123456789abcdef0123456789",
+      "span_id": "abcdef0123456789",
+      "request_id": "request-example-300"
+    },
+    "evidence_refs": ["EVIDENCE-EXCEPTION-1", "EVIDENCE-TEST-1"]
+  },
+  "repositories": [
+    {
+      "id": "repo-main",
+      "role": "primary",
+      "locator": "https://example.invalid/example/api.git",
+      "commit_sha": "3333333333333333333333333333333333333333",
+      "branch": "main"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "EVIDENCE-EXCEPTION-1",
+      "kind": "exception",
+      "summary": "Checkout rejects an expired inventory reservation",
+      "observed_at": "2026-07-14T04:00:00Z",
+      "collected_at": "2026-07-14T04:01:10Z",
+      "source": {
+        "adapter": "structured-log",
+        "locator": "logs://example-api/checkout-api",
+        "selector": "request_id=request-example-300"
+      },
+      "relation": "anchor",
+      "content_type": "application/json",
+      "content_hash": "sha256:662767328854a6291c60c6fff250a26c35893b25c61476e48d8202fa40b5e427",
+      "size_bytes": 279,
+      "content_ref": "evidence/exception.json",
+      "redaction_status": "sanitized",
+      "redaction_policy_version": "default-v1"
+    },
+    {
+      "id": "EVIDENCE-TEST-1",
+      "kind": "test",
+      "summary": "Regression test passes after refreshing expired reservations",
+      "observed_at": "2026-07-14T04:20:00Z",
+      "collected_at": "2026-07-14T04:20:05Z",
+      "source": {
+        "adapter": "development-agent",
+        "locator": "workspace://example-api",
+        "selector": "tests/test_checkout.py::test_refreshes_expired_reservation"
+      },
+      "relation": "derived",
+      "content_type": "text/plain",
+      "content_hash": "sha256:da9ec207ab1495bfc143b0b2c88b4922aba75c5328a5fcf328b1427d1c86b62b",
+      "size_bytes": 85,
+      "content_ref": "evidence/test-output.txt",
+      "redaction_status": "sanitized",
+      "redaction_policy_version": "default-v1",
+      "derived_from": ["EVIDENCE-EXCEPTION-1"]
+    }
+  ],
+  "analyses": [
+    {
+      "id": "ANALYSIS-1",
+      "created_at": "2026-07-14T04:18:00Z",
+      "agent": {
+        "name": "example-coding-agent",
+        "version": "1.0"
+      },
+      "status": "complete",
+      "facts": [
+        {
+          "id": "FACT-1",
+          "statement": "The checkout request contains a reservation that expired before order creation.",
+          "citations": [
+            {
+              "kind": "evidence",
+              "evidence_id": "EVIDENCE-EXCEPTION-1"
+            }
+          ]
+        },
+        {
+          "id": "FACT-2",
+          "statement": "The checkout path submits the stored reservation without checking its expiry time.",
+          "citations": [
+            {
+              "kind": "source",
+              "location": {
+                "repository_id": "repo-main",
+                "path": "src/checkout/service.py",
+                "symbol": "CheckoutService.create_order",
+                "line_start": 76,
+                "line_end": 88
+              }
+            }
+          ]
+        }
+      ],
+      "hypotheses": [
+        {
+          "id": "HYPOTHESIS-1",
+          "rank": 1,
+          "statement": "Missing reservation-expiry validation is the root cause of the failed checkout.",
+          "status": "supported",
+          "citations": [
+            {
+              "kind": "evidence",
+              "evidence_id": "EVIDENCE-EXCEPTION-1"
+            },
+            {
+              "kind": "source",
+              "location": {
+                "repository_id": "repo-main",
+                "path": "src/checkout/service.py",
+                "symbol": "CheckoutService.create_order",
+                "line_start": 76,
+                "line_end": 88
+              }
+            }
+          ],
+          "verification_steps": [
+            {
+              "id": "CHECK-1",
+              "description": "Run the regression test with an expired reservation.",
+              "command": "pytest tests/test_checkout.py::test_refreshes_expired_reservation -q",
+              "status": "passed",
+              "result": "The regression test passed after the fix.",
+              "evidence_refs": ["EVIDENCE-TEST-1"]
+            }
+          ]
+        }
+      ],
+      "missing_information": [],
+      "proposed_changes": [
+        {
+          "location": {
+            "repository_id": "repo-main",
+            "path": "src/checkout/service.py",
+            "symbol": "CheckoutService.create_order",
+            "line_start": 76,
+            "line_end": 88
+          },
+          "summary": "Refresh the reservation when it has expired before creating the order."
+        }
+      ],
+      "checks": [
+        {
+          "id": "CHECK-1",
+          "description": "Run the focused checkout regression test.",
+          "command": "pytest tests/test_checkout.py::test_refreshes_expired_reservation -q",
+          "status": "passed",
+          "result": "1 passed",
+          "evidence_refs": ["EVIDENCE-TEST-1"]
+        }
+      ]
+    }
+  ],
+  "resolution": {
+    "human_confirmed": true,
+    "confirmed_by": {
+      "id": "developer-1",
+      "kind": "human",
+      "display_name": "Example Developer"
+    },
+    "confirmed_at": "2026-07-14T04:25:00Z",
+    "analysis_id": "ANALYSIS-1",
+    "root_cause": "Checkout reused an expired inventory reservation because the order path did not validate its expiry time.",
+    "conditions": [
+      "The reservation expires before the checkout request reaches order creation."
+    ],
+    "fixes": [
+      {
+        "repository_id": "repo-main",
+        "commit_sha": "4444444444444444444444444444444444444444",
+        "changed_files": [
+          {
+            "path": "src/checkout/service.py",
+            "summary": "Refresh expired reservations before order creation."
+          },
+          {
+            "path": "tests/test_checkout.py",
+            "summary": "Cover checkout with an expired reservation."
+          }
+        ]
+      }
+    ],
+    "verification": [
+      {
+        "id": "VERIFY-1",
+        "description": "Run the focused checkout regression test.",
+        "command": "pytest tests/test_checkout.py::test_refreshes_expired_reservation -q",
+        "status": "passed",
+        "result": "1 passed",
+        "verified_at": "2026-07-14T04:20:00Z",
+        "evidence_refs": ["EVIDENCE-TEST-1"]
+      }
+    ],
+    "observed_in_environment": true
+  }
+}

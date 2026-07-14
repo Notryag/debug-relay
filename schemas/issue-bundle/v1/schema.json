@@ -1,0 +1,911 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:debugrelay:schema:issue-bundle:v1",
+  "title": "DebugRelay Issue Bundle v1",
+  "description": "Portable problem context, AI development-agent analysis, and human-confirmed resolution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "redaction_status",
+    "issue",
+    "repositories",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "debugrelay.issue-bundle/v1"
+    },
+    "generated_at": {
+      "$ref": "#/$defs/utcTimestamp"
+    },
+    "redaction_status": {
+      "const": "sanitized"
+    },
+    "issue": {
+      "$ref": "#/$defs/issue"
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/repository"
+      },
+      "contains": {
+        "type": "object",
+        "required": ["role"],
+        "properties": {
+          "role": {
+            "const": "primary"
+          }
+        }
+      },
+      "minContains": 1,
+      "maxContains": 1
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "analyses": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/analysis"
+      }
+    },
+    "resolution": {
+      "$ref": "#/$defs/resolution"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "issue": {
+            "properties": {
+              "state": {
+                "const": "resolved"
+              }
+            },
+            "required": ["state"]
+          }
+        },
+        "required": ["issue"]
+      },
+      "then": {
+        "required": ["analyses", "resolution"]
+      },
+      "else": {
+        "not": {
+          "required": ["resolution"]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "shortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "longText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65536
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "gitCommit": {
+      "type": "string",
+      "description": "Lowercase Git SHA-1 or SHA-256 object ID.",
+      "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$"
+    },
+    "mimeType": {
+      "type": "string",
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+$"
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "project_id",
+        "environment",
+        "component",
+        "state",
+        "occurred_at",
+        "summary",
+        "expected",
+        "actual",
+        "reproduction",
+        "evidence_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "project_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "environment": {
+          "$ref": "#/$defs/identifier"
+        },
+        "component": {
+          "$ref": "#/$defs/identifier"
+        },
+        "state": {
+          "enum": ["open", "analyzing", "resolved"]
+        },
+        "occurred_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "reported_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "summary": {
+          "$ref": "#/$defs/shortText"
+        },
+        "expected": {
+          "$ref": "#/$defs/longText"
+        },
+        "actual": {
+          "$ref": "#/$defs/longText"
+        },
+        "reproduction": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "fingerprint": {
+          "$ref": "#/$defs/identifier"
+        },
+        "labels": {
+          "type": "array",
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/identifier"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        },
+        "correlation": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "trace_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "span_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            },
+            "request_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "job_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        },
+        "release": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "deployment_id": {
+              "$ref": "#/$defs/identifier"
+            },
+            "deployed_at": {
+              "$ref": "#/$defs/utcTimestamp"
+            },
+            "image_digest": {
+              "$ref": "#/$defs/sha256"
+            },
+            "source_map_revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "configuration_fingerprints": {
+              "type": "object",
+              "maxProperties": 100,
+              "propertyNames": {
+                "$ref": "#/$defs/identifier"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "role", "locator", "commit_sha"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "role": {
+          "enum": ["primary", "related"]
+        },
+        "locator": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "commit_sha": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "subdirectory": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "observedRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "to": {
+          "$ref": "#/$defs/utcTimestamp"
+        }
+      }
+    },
+    "evidenceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adapter", "locator"],
+      "properties": {
+        "adapter": {
+          "$ref": "#/$defs/identifier"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "summary",
+        "collected_at",
+        "source",
+        "relation",
+        "content_type",
+        "content_hash",
+        "size_bytes",
+        "content_ref",
+        "redaction_status",
+        "redaction_policy_version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "enum": [
+            "user_report",
+            "exception",
+            "log",
+            "request",
+            "runtime",
+            "change",
+            "deployment",
+            "test",
+            "trace",
+            "metric",
+            "other"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/shortText"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "observed_range": {
+          "$ref": "#/$defs/observedRange"
+        },
+        "collected_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "source": {
+          "$ref": "#/$defs/evidenceSource"
+        },
+        "relation": {
+          "enum": ["anchor", "correlated", "derived", "historical"]
+        },
+        "content_type": {
+          "$ref": "#/$defs/mimeType"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10485760
+        },
+        "content_ref": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "redaction_status": {
+          "const": "sanitized"
+        },
+        "redaction_policy_version": {
+          "$ref": "#/$defs/identifier"
+        },
+        "derived_from": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "artifact_refs": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "attributes": {
+          "type": "object",
+          "maxProperties": 100,
+          "additionalProperties": true
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["observed_at"],
+          "not": {
+            "required": ["observed_range"]
+          }
+        },
+        {
+          "required": ["observed_range"],
+          "not": {
+            "required": ["observed_at"]
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "content_ref",
+        "content_type",
+        "content_hash",
+        "size_bytes",
+        "redaction_status",
+        "redaction_policy_version"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "enum": ["screenshot", "recording", "trace_export", "source_map", "archive", "other"]
+        },
+        "description": {
+          "$ref": "#/$defs/shortText"
+        },
+        "content_ref": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "content_type": {
+          "$ref": "#/$defs/mimeType"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 52428800
+        },
+        "redaction_status": {
+          "const": "sanitized"
+        },
+        "redaction_policy_version": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "sourceLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_id", "path"],
+      "properties": {
+        "repository_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "symbol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "line_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "line_end": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "citation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "evidence_id"],
+          "properties": {
+            "kind": {
+              "const": "evidence"
+            },
+            "evidence_id": {
+              "$ref": "#/$defs/identifier"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "location"],
+          "properties": {
+            "kind": {
+              "const": "source"
+            },
+            "location": {
+              "$ref": "#/$defs/sourceLocation"
+            }
+          }
+        }
+      ]
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement", "citations"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "statement": {
+          "$ref": "#/$defs/longText"
+        },
+        "citations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "status"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "status": {
+          "enum": ["proposed", "passed", "failed", "skipped"]
+        },
+        "result": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        },
+        "evidence_refs": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "rank", "statement", "status", "citations", "verification_steps"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "rank": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "statement": {
+          "$ref": "#/$defs/longText"
+        },
+        "status": {
+          "enum": ["unconfirmed", "supported", "rejected"]
+        },
+        "citations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "verification_steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/check"
+          }
+        }
+      }
+    },
+    "proposedChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["location", "summary"],
+      "properties": {
+        "location": {
+          "$ref": "#/$defs/sourceLocation"
+        },
+        "summary": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "agentIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/identifier"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "created_at",
+        "agent",
+        "status",
+        "facts",
+        "hypotheses",
+        "missing_information",
+        "proposed_changes",
+        "checks"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "created_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "agent": {
+          "$ref": "#/$defs/agentIdentity"
+        },
+        "status": {
+          "enum": ["incomplete", "complete"]
+        },
+        "facts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        },
+        "hypotheses": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/hypothesis"
+          }
+        },
+        "missing_information": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "proposed_changes": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/proposedChange"
+          }
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/check"
+          }
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "kind": {
+          "const": "human"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "fileChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "summary"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "summary": {
+          "$ref": "#/$defs/shortText"
+        }
+      }
+    },
+    "fix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_id", "commit_sha", "changed_files"],
+      "properties": {
+        "repository_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "commit_sha": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "changed_files": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "items": {
+            "$ref": "#/$defs/fileChange"
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "status", "result", "verified_at"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "status": {
+          "const": "passed"
+        },
+        "result": {
+          "$ref": "#/$defs/longText"
+        },
+        "verified_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "human_confirmed",
+        "confirmed_by",
+        "confirmed_at",
+        "analysis_id",
+        "root_cause",
+        "fixes",
+        "verification",
+        "observed_in_environment"
+      ],
+      "properties": {
+        "human_confirmed": {
+          "const": true
+        },
+        "confirmed_by": {
+          "$ref": "#/$defs/actor"
+        },
+        "confirmed_at": {
+          "$ref": "#/$defs/utcTimestamp"
+        },
+        "analysis_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "root_cause": {
+          "$ref": "#/$defs/longText"
+        },
+        "conditions": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "fixes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/fix"
+          }
+        },
+        "verification": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/verification"
+          }
+        },
+        "observed_in_environment": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

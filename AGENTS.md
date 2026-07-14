@@ -9,8 +9,9 @@ These instructions apply to the entire DebugRelay repository.
 - Read `docs/contracts/issue-bundle-v1.md` before changing public data contracts.
 - Read `docs/security.md` before changing evidence collection, storage, export, authentication, or
   repository access.
-- The project is currently design-only. Do not introduce implementation scaffolding unless the task
-  explicitly asks for it.
+- The project is in its contract-first phase. Issue Bundle v1 and its tests exist; application
+  implementation has not started. Do not introduce broader scaffolding unless the task asks for the
+  next MVP stage.
 
 ## Product Invariants
 

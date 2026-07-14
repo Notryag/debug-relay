@@ -1,0 +1,13 @@
+{
+  "exception": {
+    "message": "Inventory lookup exceeded the configured timeout.",
+    "stacktrace": [
+      "src/checkout/service.py:84 in create_order",
+      "src/inventory/client.py:51 in reserve"
+    ],
+    "type": "InventoryTimeout"
+  },
+  "request_id": "request-example-200",
+  "service": "checkout-api",
+  "trace_id": "0123456789abcdef0123456789abcdef"
+}

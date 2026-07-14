@@ -10,6 +10,13 @@ to inspect the correct source revision, and returned as a human-confirmed reusab
 The agent runtime may remain external to DebugRelay, but an AI diagnosis round trip is required for
 MVP acceptance. The core contract must not depend on one model or provider.
 
+## Current Progress
+
+- Complete: Issue Bundle v1 Draft 2020-12 JSON Schema
+- Complete: minimal, exception, and resolved portable examples
+- Complete: schema, reference-integrity, and content-integrity contract tests
+- Next: PostgreSQL domain storage and REST resources
+
 ## Vertical Slice
 
 1. Register a project and one repository mapping.
@@ -82,7 +89,7 @@ The first case should include:
 
 ## Delivery Stages
 
-1. Finalize Issue Bundle v1 JSON Schema and representative fixtures.
+1. Complete: finalize Issue Bundle v1 JSON Schema and representative fixtures.
 2. Implement PostgreSQL domain storage and REST resources.
 3. Add the CLI and portable export.
 4. Build the issue inbox, issue detail, and project settings pages.
@@ -91,9 +98,8 @@ The first case should include:
 7. Add generic Git, file, Docker, webhook, and HTTP evidence adapters.
 8. Add MCP and Kubernetes adapters only after the core contract is stable.
 
-## Decisions Required Before Coding
+## Decisions Required Before Application Work
 
-- the exact Issue Bundle v1 JSON Schema and fixture set
 - the first external development agent used for acceptance testing
 - repository-locator to authorized-workspace mapping
 - default evidence size, redaction, and retention limits
