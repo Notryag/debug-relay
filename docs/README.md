@@ -5,9 +5,10 @@ This wiki is the source of truth for DebugRelay product and engineering decision
 
 ## Current Status
 
-DebugRelay has completed its first backend vertical slice: Issue Bundle v1, PostgreSQL persistence,
-scoped tokens, evidence redaction, REST resources, ZIP export, and integration tests. CLI and web
-implementation are the next product stages; public production exposure remains deferred.
+DebugRelay has completed its first backend vertical slice and CLI: Issue Bundle v1, PostgreSQL
+persistence, scoped tokens, evidence redaction, REST resources, ZIP export, similar-case retrieval,
+and file-oriented developer and agent commands. The web application and real-agent acceptance case
+are next; public production exposure remains deferred.
 
 ## Read by Task
 
@@ -21,6 +22,7 @@ implementation are the next product stages; public production exposure remains d
 | Change the portable contract | [Issue Bundle v1](contracts/issue-bundle-v1.md) |
 | Connect a project or runtime | [Project Integration](integrations/project-integration.md) |
 | Connect a development agent | [Development Agent Interface](integrations/agent-interface.md) |
+| Use or change the CLI | [Command-Line Interface](cli.md) |
 | Change auth, redaction, or access | [Security](security.md) |
 | Run or change the backend | [Backend Development](development.md) |
 | Plan implementation or acceptance | [MVP Plan](mvp.md) |
@@ -48,7 +50,8 @@ Integration implementation:
 1. [Project Integration](integrations/project-integration.md)
 2. [Evidence Pipeline](architecture/evidence-pipeline.md)
 3. [Development Agent Interface](integrations/agent-interface.md)
-4. [Security](security.md)
+4. [Command-Line Interface](cli.md)
+5. [Security](security.md)
 
 ## Product Boundary
 

@@ -16,7 +16,7 @@ agent, a remote service, and a file-only workflow must all be able to consume th
 REST, OpenAPI, and the versioned Issue Bundle JSON Schema are canonical. CLI and MCP interfaces are
 adapters over those resources.
 
-Initial REST resources:
+Implemented REST resources:
 
 ```text
 POST /api/issues
@@ -26,19 +26,20 @@ GET  /api/issues/{issue_id}/bundle
 GET  /api/issues/{issue_id}/evidence
 GET  /api/issues/{issue_id}/similar
 POST /api/issues/{issue_id}/analyses
-POST /api/issues/{issue_id}/resolution-candidates
 POST /api/issues/{issue_id}/resolve
 ```
 
-The final route design should distinguish human-only resolution confirmation from agent report
-credentials.
+Agent report and human-only resolution confirmation use distinct token scopes.
 
 ## CLI
 
-The planned command surface is:
+The implemented command surface is:
 
 ```text
-debugrelay issue create
+debugrelay project create PROJECT_JSON
+debugrelay project show PROJECT_ID
+debugrelay issue create ISSUE_JSON
+debugrelay issue list --project PROJECT_ID
 debugrelay issue show ISSUE_ID
 debugrelay issue export ISSUE_ID
 debugrelay issue attach ISSUE_ID PATH
@@ -47,7 +48,8 @@ debugrelay issue resolve ISSUE_ID RESOLUTION_JSON
 ```
 
 The CLI is the simplest portable handoff. An exported bundle must remain usable when the agent has
-no live access to the DebugRelay server.
+no live access to the DebugRelay server. Configuration, token scopes, file limits, and examples are
+documented in the [Command-Line Interface](../cli.md).
 
 ## MCP Adapter
 

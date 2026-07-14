@@ -43,8 +43,8 @@ DebugRelay 希望形成这样一个开发闭环：
 
 ## 使用方式与目标工作流
 
-当前后端已经实现问题记录、证据脱敏、Agent 分析回传、人工确认解决和问题包导出；CLI 与 Web
-界面仍在开发中。完整工作流如下。
+当前后端与 CLI 已经实现问题记录、证据脱敏、Agent 分析回传、人工确认解决、相似案例查询和问题包
+导出；Web 界面仍在开发中。完整工作流如下。
 
 ### 1. 接入项目
 
@@ -118,11 +118,15 @@ Prometheus、Loki、Docker 和 Kubernetes 都可以成为问题或证据来源�
 ## 当前状态
 
 项目处于早期开发阶段，尚未发布正式版本。Issue Bundle v1、PostgreSQL 持久化、权限隔离、证据
-脱敏、REST API、ZIP 导出与后端集成测试已经完成。接下来的开发目标是：
+脱敏、REST API、CLI、ZIP 导出与后端集成测试已经完成。可在源码目录运行：
 
-1. 面向开发者和 Agent 的 CLI
-2. 问题收件箱和问题详情页面
-3. 一次真实的 AI 开发 Agent 分析与修复验证
+```bash
+uv sync --dev
+uv run debugrelay --help
+```
+
+完整命令、令牌范围和 JSON 示例见 [CLI 使用文档](docs/cli.md)。接下来的开发目标是问题收件箱与
+问题详情页面，以及一次真实的 AI 开发 Agent 分析和修复验证。
 
 Dayboard 可以作为第一个试用项目，但 DebugRelay 的核心设计不会依赖 Dayboard。
 

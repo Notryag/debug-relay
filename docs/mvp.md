@@ -18,7 +18,8 @@ MVP acceptance. The core contract must not depend on one model or provider.
 - Complete: PostgreSQL domain storage and initial migration
 - Complete: scoped project tokens, evidence redaction, REST workflow, and bundle export
 - Complete: PostgreSQL integration and security tests
-- Next: CLI create, show, attach, export, analysis, and resolve commands
+- Complete: CLI create, show, attach, export, analysis, resolution, and similar-case commands
+- Next: issue inbox, issue detail, and project settings web views
 
 ## Vertical Slice
 
@@ -94,18 +95,18 @@ The first case should include:
 
 1. Complete: finalize Issue Bundle v1 JSON Schema and representative fixtures.
 2. Complete: implement PostgreSQL domain storage and REST resources.
-3. Next: add the CLI; portable API export is complete.
-4. Build the issue inbox, issue detail, and project settings pages.
+3. Complete: add the CLI and portable API export.
+4. Next: build the issue inbox, issue detail, and project settings pages.
 5. Complete one real AI development-agent analysis and resolution round trip.
-6. Add deterministic similar-case retrieval.
+6. Complete: add deterministic similar-case retrieval.
 7. Add generic Git, file, Docker, webhook, and HTTP evidence adapters.
 8. Add MCP and Kubernetes adapters only after the core contract is stable.
 
-## Decisions Required Before Application Work
+## Remaining Acceptance Decisions
 
 - the first external development agent used for acceptance testing
 - repository-locator to authorized-workspace mapping
-- default evidence size, redaction, and retention limits
+- retention policy beyond the current bounded sanitized-evidence MVP
 - the first end-to-end acceptance issue
 
 Related: [Product Vision](product/vision.md), [System Architecture](architecture/overview.md), and

@@ -72,6 +72,14 @@ uv run uvicorn debugrelay.main:app --host 127.0.0.1 --port 8010
 
 The API documentation is available at `http://127.0.0.1:8010/docs`.
 
+The source checkout also exposes the REST-backed CLI:
+
+```bash
+uv run debugrelay --help
+```
+
+See [Command-Line Interface](cli.md) for configuration, token scopes, examples, and exit codes.
+
 ## Docker API
 
 The Compose file runs only the API. It connects to an existing PostgreSQL container through an
@@ -161,6 +169,8 @@ uv run ruff format --check src alembic tests
 The API tests use real migrations and PostgreSQL. They truncate only the configured test database.
 They cover token scope, token hashing, cross-project isolation, secret redaction, evidence access,
 analysis citations, human-only resolution, ZIP export, schema validation, and similar-case retrieval.
+CLI tests cover REST mapping, bearer-token handling, local size limits, path-free attachment
+provenance, timestamp normalization, bounded downloads, and stable error exits.
 
-Related: [System Architecture](architecture/overview.md), [Security](security.md), and
-[Issue Bundle v1](contracts/issue-bundle-v1.md).
+Related: [System Architecture](architecture/overview.md), [Command-Line Interface](cli.md),
+[Security](security.md), and [Issue Bundle v1](contracts/issue-bundle-v1.md).

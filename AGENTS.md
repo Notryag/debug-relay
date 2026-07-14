@@ -9,9 +9,10 @@ These instructions apply to the entire DebugRelay repository.
 - Read `docs/contracts/issue-bundle-v1.md` before changing public data contracts.
 - Read `docs/security.md` before changing evidence collection, storage, export, authentication, or
   repository access.
-- The backend vertical slice is implemented: Issue Bundle v1, PostgreSQL persistence, scoped tokens,
-  evidence redaction, REST resources, ZIP export, and integration tests. The CLI and web application
-  have not started. Keep new work within the next routed MVP stage.
+- The backend vertical slice and CLI are implemented: Issue Bundle v1, PostgreSQL persistence,
+  scoped tokens, evidence redaction, REST resources, ZIP export, similar-case retrieval, and tested
+  file-oriented commands. The web application and real-agent acceptance case are next. Keep new work
+  within the routed MVP stage.
 
 ## Product Invariants
 
