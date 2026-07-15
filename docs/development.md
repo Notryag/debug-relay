@@ -91,11 +91,11 @@ external Docker network instead of starting a second database server.
 Configure:
 
 ```text
-DEBUGRELAY_POSTGRES_NETWORK=<network-containing-postgres>
-DEBUGRELAY_DOCKER_DATABASE_URL=postgresql+asyncpg://debugrelay:<password>@postgres:5432/debugrelay
+DEBUGRELAY_POSTGRES_NETWORK=platform-infra
+DEBUGRELAY_DOCKER_DATABASE_URL=postgresql+asyncpg://debugrelay:<password>@platform-postgres:5432/debugrelay
 ```
 
-The database container must be reachable as `postgres` on that network. Then run:
+The database container must be reachable as `platform-postgres` on that network. Then run:
 
 ```bash
 docker compose build api
@@ -104,7 +104,7 @@ docker compose ps
 curl -fsS http://127.0.0.1:8010/health
 ```
 
-The current workspace network is `dayboard_default`; this is local deployment configuration, not a
+The production workspace network is `platform-infra`; this is deployment configuration, not a
 DebugRelay product dependency.
 
 ## Authentication Scopes
