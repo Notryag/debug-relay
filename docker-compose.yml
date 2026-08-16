@@ -4,6 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    mem_limit: ${DEBUGRELAY_API_MEMORY_LIMIT:-192m}
+    memswap_limit: ${DEBUGRELAY_API_MEMORY_SWAP_LIMIT:-192m}
+    pids_limit: ${DEBUGRELAY_API_PIDS_LIMIT:-64}
     environment:
       DEBUGRELAY_ENV: ${DEBUGRELAY_ENV:-local}
       DEBUGRELAY_ADMIN_TOKEN: ${DEBUGRELAY_ADMIN_TOKEN:-debugrelay-local-admin}
@@ -21,7 +24,8 @@ services:
           "-c",
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health')",
         ]
-      interval: 10s
+      interval: 1h
+      start_interval: 5s
       timeout: 5s
       retries: 6
       start_period: 10s
